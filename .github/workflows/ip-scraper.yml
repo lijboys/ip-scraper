@@ -9,9 +9,8 @@ jobs:
   scrape-ip:
     runs-on: ubuntu-latest
     
-    env:
-      LANG: zh_CN.UTF-8
-      LC_ALL: zh_CN.UTF-8
+    permissions:
+      contents: write  # 授予写入权限
       
     steps:
       - name: Checkout code
@@ -36,7 +35,7 @@ jobs:
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
-            git add ip.txt ip_scraper.log
+            git add 89.txt
             git commit -m "Update top IPs"
             git push
           else
