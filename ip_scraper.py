@@ -35,7 +35,13 @@ def extract_fastest_ips():
         for row in table.find_all('tr')[1:]:
             cols = row.find_all('td')
             if len(cols) >= 6:  # 确保包含IP和下载速度列
-                ip = cols[0].text.strip()
+                # 提取并清理IP地址，只保留数字和点
+                ip_text = cols[0].text.strip()
+                ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', ip_text)
+                if not ip_match:
+                    continue  # 如果没有匹配到IP格式，则跳过此行
+                ip = ip_match.group(1)
+                
                 speed = cols[5].text.strip()  # 下载速度在第6列（索引5）
                 
                 # 验证速度格式（包含数字和单位）
