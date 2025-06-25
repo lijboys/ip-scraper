@@ -1,0 +1,8 @@
+cf.090227.xyz#三网自适应分流官方优选
+ct.090227.xyz#电信官方优选
+cmcc.090227.xyz#移动官方优选
+cfip.xxxxxxxx.tk#OTC提供维护官方优选
+bestcf.onecf.eu.org#Mingyu提供维护官方优选
+cf.zhetengsha.eu.org#小一提供维护官方优选
+bestproxy.onecf.eu.org#Mingyu提供维护反代优选
+proxy.xxxxxxxx.tk#OTC提供维护反代优选
