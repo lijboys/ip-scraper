@@ -31,8 +31,8 @@ jobs:
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
-            git add current_ip.txt ip_scraper.log
-            git commit -m "Update IP address"
+            git add ip.txt ip_scraper.log
+            git commit -m "Update top IPs"
             git push
           else
             echo "No changes to commit"
