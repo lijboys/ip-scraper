@@ -1,43 +1,43 @@
-name: IP Scraper
+name: IP 数据采集
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # 每4小时执行一次
+    - cron: '0 */4 * * *'  # 每 4 小时执行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  scrape-ip:
+  采集-IP:
     runs-on: ubuntu-latest
     
     permissions:
       contents: write  # 授予写入权限
       
     steps:
-      - name: Checkout code
+      - name: 检出代码
         uses: actions/checkout@v4
       
-      - name: Set up Python
+      - name: 配置 Python 环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       
-      - name: Install dependencies
+      - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
       
-      - name: Run IP scraper
+      - name: 运行 IP 采集脚本
         run: python ip_scraper.py
       
-      - name: Commit and push changes
+      - name: 提交并推送更改
         if: github.event_name == 'workflow_dispatch' || github.event.schedule
         run: |
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git add 89.txt
-            git commit -m "Update top IPs"
+            git commit -m "更新最快 IP 数据"
             git push
           else
-            echo "No changes to commit"
+            echo "无更改需要提交"
           fi
