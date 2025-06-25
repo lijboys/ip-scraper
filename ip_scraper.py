@@ -1,10 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
-import time
 import logging
 import os
 import re
-import concurrent.futures
 
 # 配置日志
 logging.basicConfig(
@@ -16,117 +14,68 @@ logging.basicConfig(
     ]
 )
 
-def get_ip_list_from_webpage():
-    """从指定网页获取IP地址和速度列表"""
+def extract_fastest_ips():
+    """从网页提取速度最快的5个IP，按'ip#速度'格式保存到ip.txt"""
     url = "https://ip.164746.xyz/"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+    }
     
     try:
-        # 设置请求头，模拟浏览器访问
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+        # 发送请求获取网页内容
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()  # 抛出HTTP错误
         
-        # 发送HTTP请求
-        response = requests.get(url, headers=headers, timeout=10)
+        # 解析HTML表格
+        soup = BeautifulSoup(response.text, 'html.parser')
+        table = soup.find('table')
+        ip_data = []
         
-        # 检查响应状态码
-        if response.status_code == 200:
-            # 使用BeautifulSoup解析HTML内容
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # 这里需要根据网页实际结构调整选择器
-            # 以下为示例，假设IP和速度在表格中
-            ip_speed_list = []
-            # 查找所有包含IP的行
-            ip_elements = soup.find_all('tr')
-            
-            for element in ip_elements:
-                # 提取IP地址、端口和速度
-                columns = element.find_all('td')
-                if len(columns) >= 3:  # 假设第三列是速度信息
-                    ip = columns[0].text.strip()
-                    port = columns[1].text.strip()
-                    speed = columns[2].text.strip()
-                    
-                    # 验证速度格式是否包含单位
-                    if re.search(r'\d+\.?\d*\s*(KB|MB|GB)?/s', speed):
-                        ip_speed_list.append((f"{ip}:{port}", speed))
-            
-            logging.info(f"成功获取{len(ip_speed_list)}个IP地址和速度信息")
-            return ip_speed_list
-        else:
-            logging.error(f"请求失败，状态码: {response.status_code}")
-            return []
-            
-    except Exception as e:
-        logging.error(f"发生异常: {str(e)}")
-        return []
-
-def parse_speed(speed_str):
-    """将速度字符串转换为数值以便排序"""
-    try:
-        # 提取数值和单位
-        match = re.search(r'(\d+\.?\d*)\s*([KMGT]?B)?/s', speed_str)
-        if match:
-            value = float(match.group(1))
-            unit = match.group(2) or 'B'  # 默认单位为B/s
-            
-            # 转换为相同单位（KB/s）便于比较
-            if unit == 'B':
-                return value / 1024
-            elif unit == 'KB':
-                return value
-            elif unit == 'MB':
-                return value * 1024
-            elif unit == 'GB':
-                return value * 1024 * 1024
-            elif unit == 'TB':
-                return value * 1024 * 1024 * 1024
-        return 0
-    except Exception as e:
-        logging.error(f"解析速度失败: {speed_str}, 错误: {str(e)}")
-        return 0
-
-def save_top_ips_to_file(ip_speed_list, count=5):
-    """将速度最快的前N个IP保存到文件"""
-    if not ip_speed_list:
-        logging.error("没有可用的IP地址")
-        return
-    
-    # 按速度排序（降序，速度越快越靠前）
-    sorted_ips = sorted(ip_speed_list, key=lambda x: parse_speed(x[1]), reverse=True)
-    
-    # 取前N个
-    top_ips = sorted_ips[:count]
-    
-    # 保存到文件
-    try:
-        with open("ip.txt", "w") as f:
-            for ip, speed in top_ips:
+        # 遍历表格行（跳过表头）
+        for row in table.find_all('tr')[1:]:
+            cols = row.find_all('td')
+            if len(cols) >= 6:  # 确保包含IP和下载速度列
+                ip = cols[0].text.strip()
+                speed = cols[5].text.strip()  # 下载速度在第6列（索引5）
+                
+                # 验证速度格式（包含数字和单位）
+                if re.search(r'\d+\.\d+\s*(MB|KB)/s', speed):
+                    ip_data.append((ip, speed))
+        
+        if not ip_data:
+            logging.error("未提取到有效IP速度数据")
+            return
+        
+        # 按速度降序排序（MB/s > KB/s，数值大的优先）
+        def sort_key(item):
+            speed_str = item[1]
+            num = float(re.search(r'(\d+\.\d+)', speed_str).group(1))
+            unit = re.search(r'([KM]B)/s', speed_str).group(1)
+            return num * (1024 if unit == 'MB' else 1)  # MB转KB统一单位比较
+        
+        top_5 = sorted(ip_data, key=sort_key, reverse=True)[:5]
+        
+        # 保存到文件
+        with open('ip.txt', 'w', encoding='utf-8') as f:
+            for ip, speed in top_5:
                 f.write(f"{ip}#{speed}\n")
-        logging.info(f"已保存{len(top_ips)}个最快的IP到文件")
+        logging.info(f"已成功保存5个最快的IP地址到ip.txt文件")
         
         # 打印结果
-        print("\n速度最快的IP地址:")
-        print("排名\tIP地址\t\t速度")
-        for i, (ip, speed) in enumerate(top_ips, 1):
+        print("\n检测到速度最快的5个IP地址：")
+        print("排名\tIP地址\t\t\t速度")
+        print("-" * 40)
+        for i, (ip, speed) in enumerate(top_5, 1):
             print(f"{i}\t{ip}\t{speed}")
+        print("-" * 40)
+        print(f"完整结果已保存至: {os.path.abspath('ip.txt')}")
             
+    except requests.exceptions.RequestException as e:
+        logging.error(f"网络请求失败: {str(e)}")
     except Exception as e:
-        logging.error(f"保存文件失败: {str(e)}")
-
-def main():
-    """主函数，执行IP获取和保存任务"""
-    logging.info("IP地址定时获取脚本启动")
-    
-    # 获取IP和速度列表
-    ip_speed_list = get_ip_list_from_webpage()
-    
-    if ip_speed_list:
-        # 保存速度最快的IP
-        save_top_ips_to_file(ip_speed_list, 5)
-    else:
-        logging.error("未能获取到任何IP地址")
+        logging.error(f"程序运行异常: {str(e)}")
 
 if __name__ == "__main__":
-    main()    
+    print("正在执行IP速度检测任务...")
+    extract_fastest_ips()
+    print("任务执行完毕！")
