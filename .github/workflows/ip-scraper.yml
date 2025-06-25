@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  采集-IP:
+  scrape-ip:  # 修改为符合规则的任务标识符
     runs-on: ubuntu-latest
     
     permissions:
