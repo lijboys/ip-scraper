@@ -9,15 +9,13 @@ jobs:
   scrape-ip:
     runs-on: ubuntu-latest
     
-    permissions:
-      contents: write  # 授予写入权限
+    env:
+      LANG: zh_CN.UTF-8
+      LC_ALL: zh_CN.UTF-8
       
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # 使用默认令牌
-          fetch-depth: 0  # 获取完整历史记录
       
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,7 +31,7 @@ jobs:
         run: python ip_scraper.py
       
       - name: Commit and push changes
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule  # 仅在计划或手动触发时执行
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule
         run: |
           if [[ $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions"
