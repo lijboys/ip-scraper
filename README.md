@@ -1,87 +1,122 @@
-# GitHub Actions IP地址定时获取脚本
+# IP 地址采集与筛选工具
 
-这个项目使用GitHub Actions定时从指定网页抓取IP地址信息，并自动更新到仓库中。无需服务器，完全免费使用！
+本工具通过 GitHub Actions 定时从多个网页采集 IP 地址，对第一个网页的 IP 按速度筛选出最优 5 个，第二个网页的 IP 全部采集，并为所有 IP 添加国家代码，最终保存到文件中。
 
 ## 功能特点
 
-- 每4小时自动运行一次（可自定义频率）
-- 从指定网页提取IP地址信息
-- 自动保存IP地址到文件
-- 自动提交更新到GitHub仓库
-- 记录详细执行日志，方便排查问题
+- **多源采集**：同时从两个不同结构的网页采集 IP 地址
+  - 第一个网页：从表格中提取 IP 及速度信息，筛选速度最快的 5 个
+  - 第二个网页：直接提取纯文本格式的所有 IP
+- **国家代码标注**：为所有采集到的 IP 标注国家代码（如 `CN`、`US`）
+- **自动定时执行**：通过 GitHub Actions 实现每 4 小时自动运行
+- **结果合并保存**：将两个网页的结果合并保存到 `89.txt` 文件
+
+## 目录结构
+
+```
+.
+├── ip_scraper.py       # 核心脚本，负责 IP 采集与处理
+├── 89.txt              # 保存最终 IP 结果的文件
+└── .github/
+    └── workflows/
+        └── ip-scraper.yml  # GitHub Actions 配置文件
+```
 
 ## 使用方法
 
 ### 部署步骤
 
-1. **Fork本仓库**：点击右上角"Fork"按钮，将本仓库复制到你的GitHub账号下
+1. **Fork 仓库**：点击右上角 "Fork" 按钮，将本仓库复制到你的 GitHub 账号下
 
-2. **修改配置文件**（可选）：
-   - `.github/workflows/ip-scraper.yml`：调整执行频率（默认每4小时一次）
-   - `ip_scraper.py`：根据目标网站结构调整IP提取逻辑
-
-3. **启用GitHub Actions**：
+2. **启用 GitHub Actions**：
    - 进入你的仓库页面
-   - 点击"Actions"标签
-   - 点击"Enable workflows"按钮启用工作流
+   - 点击 "Actions" 标签
+   - 点击 "Enable workflows" 按钮启用工作流
 
-4. **查看结果**：
-   - 每次执行后，IP地址会保存在`current_ip.txt`文件中
-   - 执行日志保存在`ip_scraper.log`文件中
+3. **查看结果**：
+   - 每次执行后，IP 地址会保存在 `89.txt` 文件中
+   - 执行日志可在 GitHub Actions 运行记录中查看
 
-### 自定义设置
+### 配置说明
 
-1. **调整执行频率**：
-   修改`.github/workflows/ip-scraper.yml`文件中的cron表达式：
-   ```yaml
-   on:
-     schedule:
-       - cron: '0 */4 * * *'  # 每4小时执行一次
+#### 1. 采集网页配置
+
+在 `ip_scraper.py` 中可修改采集的网页 URL：
+
+```python
+html_url = "https://ip.164746.xyz/"  # 第一个网页，含 IP 速度信息
+text_url = "https://ipdb.api.030101.xyz/?type=bestcf&country=true"  # 第二个网页，纯文本 IP
+```
+
+#### 2. 定时执行频率
+
+在 `.github/workflows/ip-scraper.yml` 中修改 cron 表达式：
+
+```yaml
+on:
+  schedule:
+    - cron: '0 */4 * * *'  # 每 4 小时执行一次
+```
+
+## 结果格式说明
+
+`89.txt` 文件中包含两部分内容：
+
+1. **第一个网页的最优 5 个 IP**（带速度信息）：
    ```
-   例如，修改为`0 */6 * * *`可设置为每6小时执行一次。
-
-2. **修改目标网站**：
-   编辑`ip_scraper.py`文件中的URL和解析逻辑：
-   ```python
-   URL = 'https://ip.164746.xyz/'  # 修改为你想获取IP的网站
+   104.19.125.38#US-33.22MB/s
+   104.19.102.4#US-32.62MB/s
+   ...
    ```
 
-3. **调整日志级别**：
-   修改`ip_scraper.py`中的日志配置：
-   ```python
-   logging.basicConfig(
-       filename='ip_scraper.log',
-       level=logging.INFO,  # 可调整为DEBUG获取更详细信息
-       format='%(asctime)s - %(levelname)s - %(message)s'
-   )
+2. **第二个网页的所有 IP**（只有国家代码）：
+   ```
+   172.64.155.69#US
+   104.18.47.116#US
+   ...
    ```
 
-## 文件结构
-.github/
-└── workflows/
-    └── ip-scraper.yml  # GitHub Actions配置文件
-ip_scraper.py           # IP地址抓取脚本
-current_ip.txt          # 保存最新IP地址
-ip_scraper.log          # 执行日志文件
-README.md               # 项目说明文档
-## 故障排除
+## 技术实现
 
-1. **查看执行日志**：
-   - 进入仓库的"Actions"标签
-   - 点击左侧的"IP Scraper"工作流
-   - 选择最近一次执行记录
-   - 查看详细日志输出
+### 核心逻辑
 
-2. **常见问题**：
-   - **工作流未运行**：检查是否已启用GitHub Actions，以及cron表达式格式是否正确
-   - **IP未更新**：可能目标网站结构发生变化，需要更新解析逻辑
-   - **权限错误**：确保仓库设置中允许Actions修改仓库
+1. **IP 采集**：
+   - 第一个网页：使用 BeautifulSoup 解析 HTML 表格，提取 IP 和速度
+   - 第二个网页：直接读取纯文本内容，按行分割获取 IP
 
-## 贡献
+2. **速度筛选**：
+   - 将速度单位统一转换为 KB/s 进行比较
+   - 按速度从快到慢排序，取前 5 个
 
-如果你发现任何问题或有改进建议，请提交Issue或Pull Request。
+3. **国家代码获取**：
+   - 调用 `ipinfo.io` API 查询 IP 所属国家代码
+   - 查询失败时默认返回 `XX`
+
+### 依赖环境
+
+- Python 3.10+
+- 第三方库：`requests`, `beautifulsoup4`
+
+## 常见问题
+
+### 1. 国家代码查询失败
+
+- **原因**：`ipinfo.io` 免费 API 有每日请求限制（约 1000 次）
+- **解决方案**：可注册账号获取付费 API 密钥，或更换为其他 IP 地理位置查询服务
+
+### 2. 网页结构变化导致采集失败
+
+- **原因**：目标网页的 HTML 结构发生变化
+- **解决方案**：修改 `ip_scraper.py` 中的解析逻辑，适配新的网页结构
+
+### 3. GitHub Actions 执行失败
+
+- **原因**：可能是权限问题或依赖安装失败
+- **解决方案**：
+  - 确保仓库有写入权限
+  - 检查 `ip-scraper.yml` 配置是否正确
+  - 查看 Actions 运行日志，排查具体错误
 
 ## 许可证
 
-本项目采用MIT许可证，详情见LICENSE文件。
-    
+本项目采用 MIT 许可证，详情见 LICENSE 文件。
