@@ -2,11 +2,11 @@ name: IP 数据采集
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # 每 4 小时执行一次
+    - cron: '0 */4 * * *'  # 每4小时执行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  scrape-ip:  # 修改为符合规则的任务标识符
+  scrape-ip:
     runs-on: ubuntu-latest
     
     permissions:
@@ -36,7 +36,7 @@ jobs:
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git add 89.txt
-            git commit -m "更新最快 IP 数据"
+            git commit -m "更新 IP 数据"
             git push
           else
             echo "无更改需要提交"
