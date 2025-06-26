@@ -1,15 +1,146 @@
-104.19.30.244#US-23.75MB/s
-104.19.76.189#US-13.26MB/s
-104.19.129.93#US-12.03MB/s
-104.19.93.0#US-11.23MB/s
-104.19.19.13#US-10.56MB/s
-104.18.180.31#US
-162.159.134.206#US
-104.16.38.210#US
-172.67.155.69#US
-162.159.143.236#US
-162.159.135.155#US
-104.18.0.141#US
-104.16.55.201#US
-162.159.35.14#US
-104.17.253.123#US
+104.17.82.119#US-134.12MB/s
+198.41.192.37#US-129.4MB/s
+104.18.250.32#US-112.83MB/s
+104.17.235.245#US-36.0MB/s
+172.64.230.209#US-35.25MB/s
+<!DOCTYPE html>#XX
+<html lang="zh-CN">#XX
+<head>#XX
+<!-- 页面元信息 -->#XX
+<meta charset="UTF-8">#XX
+<meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=1.0, user-scalable=no" />#US
+<title>IPDB API</title>#US
+<link rel="icon" type="image/png" href="https://img.icons8.com/pulsar-color/48/ip-address.png">#US
+<!-- 页面样式 -->#XX
+<style>#XX
+hr {#XX
+border: 0;#XX
+height: 1px;#XX
+background: linear-gradient(to right, transparent, #ccc, transparent);#XX
+margin: 20px 0;#XX
+}#XX
+summary {#XX
+user-select: none;#XX
+cursor: pointer;#XX
+}#XX
+body {#XX
+font-family: Arial, sans-serif;#XX
+background-color: #F5F5F5;#XX
+padding: 0 3%;#XX
+/* 添加左右 padding */#XX
+}#XX
+a {#XX
+color: #838eb4;#XX
+text-decoration: none;#XX
+}#XX
+code {#XX
+background-color: #eee;#XX
+padding: 2px 5px;#XX
+border-radius: 3px;#XX
+}#XX
+p {#XX
+margin-bottom: 15px;#XX
+}#XX
+li {#XX
+margin-bottom: 5px;#XX
+}#XX
+@media (prefers-color-scheme: dark) {#XX
+body {#XX
+background-color: #333;#XX
+color: #f0f0f0;#XX
+}#XX
+code {#XX
+background-color: #444;#XX
+padding: 2px 5px;#XX
+border-radius: 3px;#XX
+}#XX
+}#XX
+</style>#US
+<script>#XX
+var _hmt = _hmt || [];#XX
+(function() {#XX
+var hm = document.createElement("script");#XX
+hm.src = "https://hm.baidu.com/hm.js?7dd7ed0a5e25f4e945738da3329b1c6c";#US
+var s = document.getElementsByTagName("script")[0];#XX
+s.parentNode.insertBefore(hm, s);#XX
+})();#XX
+</script>#US
+</head>#US
+<body>#XX
+<!-- 页面内容 -->#XX
+<h1 style="font-size: 30px;">IPDB API of <span style="text-decoration: underline; cursor: pointer;"#XX
+onclick="window.open('https://github.com/ymyuuu', '_blank')">Mingyu</span></h1>#US
+<details>#XX
+<summary>Please click to view the important tips before use.</summary>#US
+<h2>Disclaimer:</h2>#US
+<hr>#XX
+<ol>#XX
+<li>IPDB仅面向非大陆地区用户，大陆地区用户在使用时需自行承担因法律法规限制可能带来的风险。</li>#US
+<li>IPDB的数据源包括但不限于互联网、开放数据库等公开网络资源。</li>#US
+<li>IPDB致力于确保数据时效性，但不对数据的准确性、完整性或可靠性做出任何承诺。</li>#US
+<li>用户在使用IPDB提供的信息时应自行判断其适用性，IPDB不对用户的判断负责。</li>#US
+<li>IPDB数据更新周期因数据源更新频率而有所不同，使用者应了解数据的最新情况。</li>#US
+<li>IPDB不对因使用其信息导致的直接或间接损失负责，包括业务损失和数据丢失等。</li>#US
+<li>IPDB不能保证其服务始终可用，可能会进行定期维护、升级或其他必要的操作。</li>#US
+<li>IPDB不对用户因使用服务而违反法规法律的行为负责，用户应遵守当地法规。</li>#US
+<li>IPDB不对用户在使用服务时受到的网络攻击、滥用行为负责，用户应保护账户信息。</li>#US
+<li>IPDB不对用户在其服务器上存储的数据的安全性负责，建议用户定期备份重要数据。</li>#US
+</ol>#US
+<p>免责声明的任何更改将通过本页面发布，用户应定期查看以获取最新信息。</p>#US
+<p>免责声明的效力范围将覆盖使用IPDB服务的所有用户，包括匿名用户。</p>#US
+<p>IPDB可能根据业务发展和用户需求调整服务内容，如有重大变更将提前通知用户。</p>#US
+<p>IPDB不对用户在使用服务过程中因自身原因导致的数据丢失、遗漏或其他损失负责。</p>#US
+<p>IPDB不对用户在使用服务过程中产生的第三方费用（如网络费用、通信费用等）负责。</p>#US
+<p>请勿将IPDB服务用于违法、滥用、攻击等恶意行为，违者IPDB有权中止或终止使用权限。</p>#US
+<p>用户在使用IPDB服务时，应保持合理谨慎，自行承担风险，对于因使用本服务而导致的一切后果负责。</p>#US
+<p>如果您对本免责声明有任何疑问，请<a href="/cdn-cgi/l/email-protection#8fe6e1e9e0cfbfbcbfbebfbea1f7f6f5">邮件</a>联系。将尽全力为您提供必要的协助和解释。</p>#US
+<p><strong>在使用本服务前务必审慎阅读并理解本免责声明的全部内容，使用本服务将被视为对本免责声明的接受和遵守。</strong></p>#US
+</details>#US
+<h2>Help Documents:</h2>#US
+<hr>#XX
+<p><strong>type：</strong>获取的 IP 地址类型，支持单个或多个类型，用分号分隔。示例：type=cfv4;cfv6;proxy</p>#US
+<p><strong>country：</strong>是否显示 IP 地区。设置为 true 表示显示。示例：country=true</p>#US
+<p><strong>down：</strong>是否下载获取的内容。设置为 true 表示下载。示例：down=true</p>#US
+<p>寻找独一无二的<strong>优选域名</strong>？追求一劳永逸的选择？<a href="https://t.me/HeroCore" target="_blank">@HubCore</a></p>#US
+<p><strong>支持的类型：</strong></p>#US
+<ul>#XX
+<li><strong>cfv4：</strong>Cloudflare IPv4 地址列表</li>#US
+<li><strong>cfv6：</strong>Cloudflare IPv6 地址列表</li>#US
+<li><strong>proxy：</strong>反代 IP 地址列表(Ten min)</li>#US
+<li><strong>bestcf：</strong>优选官方 IP 地址列表(Half hour)</li>#US
+<li><strong>bestproxy：</strong>优选反代 IP 地址列表(Half hour)</li>#US
+</ul>#US
+<h3>Demo:</h3>#US
+<ul>#XX
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&country=true"#XX
+target="_blank">{dynamicDomain}/?type=bestproxy&country=true</a></code><br>获取优选反代 IP 地址列表并查看 IP#XX
+地区</li>#US
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;proxy"#XX
+target="_blank">{dynamicDomain}/?type=cfv4;proxy</a></code><br>获取 Cloudflare IPv4#XX
+地址列表和反代 IP#XX
+地址列表#XX
+</li>#US
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&down=true"#XX
+target="_blank">{dynamicDomain}/?type=bestproxy&down=true</a></code><br>下载优选反代 IP 地址列表#XX
+</li>#US
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;cfv6&down=true"#XX
+target="_blank">{dynamicDomain}/?type=cfv4;cfv6&down=true</a></code><br>下载 Cloudflare#XX
+IPv4#XX
+地址列表和Cloudflare IPv6 地址列表#XX
+</li>#US
+</ul>#US
+<p style="text-align: center;">#XX
+&copy; 2023-<span id="year"></span> <span>Mingyu</span> |#US
+<a href="https://github.com/ymyuuu" target="_blank">GitHub</a> |#US
+<a href="https://t.me/HeroCore" target="_blank">Telegram</a> |#US
+<a href="https://api.030101.xyz">API</a>#US
+</p>#US
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>#US
+document.getElementById("year").textContent = new Date().getFullYear();#XX
+</script>#US
+<script>#XX
+// 获取包含占位符的元素，并替换内容#XX
+document.body.innerHTML = document.body.innerHTML.replace(/{dynamicDomain}/g, window.location.hostname);#US
+</script>#US
+</body>#US
+</html>#US
