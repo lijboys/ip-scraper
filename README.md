@@ -74,7 +74,7 @@ on:
  
 关键逻辑
  
-1. IP 采集：使用 BeautifulSoup 解析 HTML 表格或纯文本内容。
+1. IP 采集：使用  BeautifulSoup  解析 HTML 表格或纯文本内容。
 2. 速度筛选：将速度统一转换为 KB/s 后排序，取前 5 个。
 3. 国家代码获取：调用  ipinfo.io  API（示例），失败时返回  XX 。
  
@@ -83,21 +83,21 @@ Telegram 通知功能
 配置步骤
  
 1. 创建 Bot：
-- 搜索 @BotFather，发送  /newbot  创建 Bot，获取 Token（示例： 123456:ABC-DEF1234ghIkl-zyx57W2v1u ）。
+- 搜索 @BotFather，发送  /newbot  创建 Bot，获取 Token（示例： 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11 ）。
 2. 获取聊天 ID：
 - 搜索 @getchatid_echo_bot，发送消息获取 ID（示例： 123456789 ）。
 3. 配置仓库秘密：
 - 在仓库  Settings → Secrets  中添加：
 -  TELEGRAM_BOT_TOKEN ：填入 Bot 的 Token
--  TELEGRAM_CHAT_ID ：填入你的聊天 ID
+-  TELEGRAM_CHAT_ID ：填入聊天 ID
  
 通知示例
  
 ⏰ 2023-01-01 12:00:00  
-开始运行项目脚本，解析以下网页：  
+开始运行 *IP 采集工具* 项目脚本，解析以下网页：  
 1. https://example.com/ip-source1  
 2. https://example.com/ip-source2  
-已保存 IP 到 `89.txt`  
+已获取优选 IP 并保存到 `89.txt`  
  
  
 （附带  89.txt  文件作为附件）
@@ -105,14 +105,14 @@ Telegram 通知功能
 常见问题
  
 1. 国家代码查询失败：
-- 原因：示例 API 有请求限制，实际使用需更换为有效服务。
+- 原因：示例 API 有请求限制（实际使用时请更换为合法服务）。
 - 解决方案：注册付费 API 或使用本地 IP 库。
 2. 网页结构变化：
-- 原因：目标网页 HTML 结构更新（如表格列数变化）。
-- 解决方案：修改  ip_scraper.py  中解析表格的列索引（如  cols[0]  改为对应列）。
+- 原因：目标网页 HTML 结构更新。
+- 解决方案：修改  ip_scraper.py  中表格解析的列索引（如  cols[0] ）。
  
 许可证
  
 本项目采用 MIT 许可证。
  
-注意：README 中的所有网址、IP 地址、Token 均为虚构示例，使用时请替换为真实配置。
+注意：README 中所有示例网址、IP 地址、Token 均为虚构，使用时请替换为真实配置。
