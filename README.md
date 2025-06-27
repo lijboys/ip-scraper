@@ -25,124 +25,94 @@ IP 地址采集与筛选工具
  
 部署步骤
  
-1. Fork 仓库：点击右上角 "Fork" 按钮，将本仓库复制到你的 GitHub 账号下
+1. Fork 仓库：点击右上角 "Fork" 按钮，将本仓库复制到你的 GitHub 账号下。
 2. 启用 GitHub Actions：
-- 进入你的仓库页面
-- 点击 "Actions" 标签
-- 点击 "Enable workflows" 按钮启用工作流
+- 进入仓库页面 → 点击 "Actions" 标签 → 点击 "Enable workflows" 启用工作流。
 3. 查看结果：
-- 每次执行后，IP 地址会保存在  89.txt  文件中
-- 执行日志可在 GitHub Actions 运行记录中查看
+- 每次执行后，IP 地址会保存在  89.txt  中，可在 Actions 运行记录中查看日志。
  
 配置说明
  
-1. 采集网页配置
+1. 采集网页配置（修改  ip_scraper.py ）
  
-在  ip_scraper.py  中可修改采集的网页 URL（示例为虚构地址，需替换为真实网址）：
- 
-html_url = "https://example.com/ip-source1"  # 第一个网页，含 IP 速度信息
-text_url = "https://example.com/ip-source2"  # 第二个网页，纯文本 IP
+html_url = "https://example.com/ip-source1"  # 含 IP 速度信息的网页（示例）
+text_url = "https://example.com/ip-source2"  # 纯文本 IP 网页（示例）
  
  
-2. 定时执行频率
- 
-在  .github/workflows/ip-scraper.yml  中修改 cron 表达式（示例为每 4 小时执行一次）：
+2. 定时执行频率（修改  .github/workflows/ip-scraper.yml ）
  
 on:
   schedule:
-    - cron: '0 */4 * * *'  # 每 4 小时执行一次
+    - cron: '0 */4 * * *'  # 每 4 小时执行一次（示例）
  
  
 结果格式说明
  
- 89.txt  文件中包含两部分内容：
+ 89.txt  文件内容示例：
  
-1. 第一个网页的最优 5 个 IP（带速度信息，示例 IP 为虚构）：
-192.168.1.100#US-25.50MB/s
-192.168.1.101#US-24.80MB/s
-192.168.1.102#CA-23.70MB/s
-192.168.1.103#DE-22.90MB/s
-192.168.1.104#UK-21.50MB/s
+1. 第一个网页的最优 5 个 IP（带速度）：
+192.168.1.100#US-25.5MB/s
+192.168.1.101#CA-24.8MB/s
+192.168.1.102#DE-23.7MB/s
+192.168.1.103#UK-22.9MB/s
+192.168.1.104#FR-21.5MB/s
  
-2. 第二个网页的所有 IP（只有国家代码，示例 IP 为虚构）：
+2. 第二个网页的所有 IP（仅国家代码）：
 10.0.0.1#CN
 10.0.0.2#JP
 10.0.0.3#KR
-10.0.0.4#FR
+10.0.0.4#RU
 10.0.0.5#IT
  
  
 技术实现
  
-核心逻辑
- 
-1. IP 采集：
-- 第一个网页：使用 BeautifulSoup 解析 HTML 表格，提取 IP 和速度
-- 第二个网页：直接读取纯文本内容，按行分割获取 IP
-2. 速度筛选：
-- 将速度单位统一转换为 KB/s 进行比较
-- 按速度从快到慢排序，取前 5 个
-3. 国家代码获取：
-- 调用  ipinfo.io  API 查询 IP 所属国家代码
-- 查询失败时默认返回  XX 
- 
-依赖环境
+核心依赖
  
 - Python 3.10+
 - 第三方库： requests ,  beautifulsoup4 
  
+关键逻辑
+ 
+1. IP 采集：使用 BeautifulSoup 解析 HTML 表格或纯文本内容。
+2. 速度筛选：将速度统一转换为 KB/s 后排序，取前 5 个。
+3. 国家代码获取：调用  ipinfo.io  API（示例），失败时返回  XX 。
+ 
 Telegram 通知功能
  
-配置方法
+配置步骤
  
-1. 创建 Telegram Bot：
-- 搜索 @BotFather 并发送  /newbot 
-- 创建 Bot 后获取 API Token（示例： 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11 ）
+1. 创建 Bot：
+- 搜索 @BotFather，发送  /newbot  创建 Bot，获取 Token（示例： 123456:ABC-DEF1234ghIkl-zyx57W2v1u ）。
 2. 获取聊天 ID：
-- 搜索 @getchatid_echo_bot 并发送任意消息
-- 机器人会回复你的聊天 ID（示例： 123456789 ）
+- 搜索 @getchatid_echo_bot，发送消息获取 ID（示例： 123456789 ）。
 3. 配置仓库秘密：
-- 在仓库 Settings → Secrets 中添加：
--  TELEGRAM_BOT_TOKEN ：Bot 的 API Token
--  TELEGRAM_CHAT_ID ：你的聊天 ID
+- 在仓库  Settings → Secrets  中添加：
+-  TELEGRAM_BOT_TOKEN ：填入 Bot 的 Token
+-  TELEGRAM_CHAT_ID ：填入你的聊天 ID
  
-通知效果示例
+通知示例
  
-文本通知内容（示例时间与项目为虚构）：
- 
-⏰ 2023-01-01 12:00:00
-
-开始运行 *IP采集工具* 项目脚本，对以下网页解析：
-1. https://example.com/ip-source1
-2. https://example.com/ip-source2
-
-已获取优选IP并保存到文件：`89.txt`
+⏰ 2023-01-01 12:00:00  
+开始运行项目脚本，解析以下网页：  
+1. https://example.com/ip-source1  
+2. https://example.com/ip-source2  
+已保存 IP 到 `89.txt`  
  
  
-附件：
- 
--  89.txt  文件会作为附件显示在通知下方
+（附带  89.txt  文件作为附件）
  
 常见问题
  
-1. 国家代码查询失败
- 
-- 原因： ipinfo.io  免费 API 有每日请求限制（约 1000 次）
-- 解决方案：可注册账号获取付费 API 密钥，或更换为其他 IP 地理位置查询服务
- 
-2. 网页结构变化导致采集失败
- 
-- 原因：目标网页的 HTML 结构发生变化
-- 解决方案：修改  ip_scraper.py  中的解析逻辑，适配新的网页结构
- 
-3. GitHub Actions 执行失败
- 
-- 原因：可能是权限问题或依赖安装失败
-- 解决方案：
-- 确保仓库有写入权限
-- 检查  ip-scraper.yml  配置是否正确
-- 查看 Actions 运行日志，排查具体错误
+1. 国家代码查询失败：
+- 原因：示例 API 有请求限制，实际使用需更换为有效服务。
+- 解决方案：注册付费 API 或使用本地 IP 库。
+2. 网页结构变化：
+- 原因：目标网页 HTML 结构更新（如表格列数变化）。
+- 解决方案：修改  ip_scraper.py  中解析表格的列索引（如  cols[0]  改为对应列）。
  
 许可证
  
-本项目采用 MIT 许可证，详情见 LICENSE 文件。
+本项目采用 MIT 许可证。
+ 
+注意：README 中的所有网址、IP 地址、Token 均为虚构示例，使用时请替换为真实配置。
