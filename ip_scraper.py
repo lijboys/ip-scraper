@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup
 import os
 import re
 import concurrent.futures
+import time
+import json
 
 def get_ip_country_code(ip):
     """通过ipinfo.io接口查询IP所属国家代码"""
@@ -93,6 +95,35 @@ def parse_speed(speed_str):
     except:
         return 0
 
+def send_telegram_notification(bot_token, chat_id, message, file_path=None):
+    """发送Telegram通知"""
+    try:
+        # 发送文本消息
+        text_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": message,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": True
+        }
+        response = requests.post(text_url, data=payload)
+        response.raise_for_status()
+        
+        # 发送文件（如果有）
+        if file_path and os.path.exists(file_path):
+            file_url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
+            with open(file_path, 'rb') as f:
+                files = {'document': (os.path.basename(file_path), f)}
+                payload = {"chat_id": chat_id}
+                response = requests.post(file_url, data=payload, files=files)
+                response.raise_for_status()
+        
+        print("Telegram通知发送成功")
+        return True
+    except Exception as e:
+        print(f"Telegram通知发送失败: {str(e)}")
+        return False
+
 def extract_fastest_ips():
     """从多个网页提取IP并按要求保存到89.txt"""
     # 定义两个网页（HTML表格和纯文本）
@@ -119,16 +150,32 @@ def extract_fastest_ips():
         all_results.append(f"{ip}#{country_code}")
     
     # 保存到文件
+    file_path = '89.txt'
     if all_results:
-        with open('89.txt', 'w', encoding='utf-8') as f:
+        with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(all_results))
-        print(f"已成功保存{len(all_results)}个IP到89.txt文件")
+        print(f"已成功保存{len(all_results)}个IP到{file_path}文件")
         
-        # 打印结果摘要
-        print("\n处理结果摘要：")
-        print(f"从 {html_url} 获取: {len(html_ips)} 个最快IP")
-        print(f"从 {text_url} 获取: {len(text_ips)} 个IP")
-        print(f"总记录数: {len(all_results)}")
+        # 生成Telegram通知内容
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        project_name = "IP采集与筛选工具"
+        webpages = [html_url, text_url]
+        file_name = os.path.basename(file_path)
+        
+        # 格式化通知消息
+        message = f"⏰ {timestamp}\n\n"
+        message += f"开始运行 *{project_name}* 项目脚本，对以下网页解析：\n"
+        for i, url in enumerate(webpages, 1):
+            message += f"{i}. {url}\n"
+        message += f"已获取优选IP并保存到文件：`{file_name}`"
+        
+        # 发送Telegram通知
+        bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+        if bot_token and chat_id:
+            send_telegram_notification(bot_token, chat_id, message, file_path)
+        else:
+            print("Telegram配置参数缺失，跳过通知")
     else:
         print("未从任何网页提取到有效IP")
 
