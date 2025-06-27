@@ -12,6 +12,10 @@ jobs:
     permissions:
       contents: write  # 授予写入权限
       
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # Telegram Bot令牌
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}      # 聊天ID
+      
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
