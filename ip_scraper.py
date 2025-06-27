@@ -4,7 +4,6 @@ import os
 import re
 import concurrent.futures
 import time
-import json
 
 def get_ip_country_code(ip):
     """通过ipinfo.io接口查询IP所属国家代码"""
@@ -96,33 +95,47 @@ def parse_speed(speed_str):
         return 0
 
 def send_telegram_notification(bot_token, chat_id, message, file_path=None):
-    """发送Telegram通知"""
+    """发送Telegram通知（文件+消息合并发送）"""
     try:
-        # 发送文本消息
-        text_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
-        response = requests.post(text_url, data=payload)
-        response.raise_for_status()
-        
-        # 发送文件（如果有）
+        if not bot_token or not chat_id:
+            print("Telegram配置参数缺失，跳过通知")
+            return False
+            
+        # 合并发送文件和消息（通过caption参数）
         if file_path and os.path.exists(file_path):
             file_url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
             with open(file_path, 'rb') as f:
                 files = {'document': (os.path.basename(file_path), f)}
-                payload = {"chat_id": chat_id}
+                payload = {
+                    "chat_id": chat_id,
+                    "caption": message,  # 消息作为文件的标题
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": True
+                }
                 response = requests.post(file_url, data=payload, files=files)
                 response.raise_for_status()
-        
-        print("Telegram通知发送成功")
-        return True
+                print("Telegram通知发送成功")
+                return True
+        else:
+            # 无文件时仅发送消息（作为备用）
+            text_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": True
+            }
+            response = requests.post(text_url, data=payload)
+            response.raise_for_status()
+            print("Telegram消息发送成功")
+            return True
+            
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"HTTP错误 {e.response.status_code}: {e.response.text}"
+        print(f"Telegram通知发送失败: {error_msg}")
     except Exception as e:
         print(f"Telegram通知发送失败: {str(e)}")
-        return False
+    return False
 
 def extract_fastest_ips():
     """从多个网页提取IP并按要求保存到89.txt"""
@@ -162,20 +175,17 @@ def extract_fastest_ips():
         webpages = [html_url, text_url]
         file_name = os.path.basename(file_path)
         
-        # 格式化通知消息
+        # 格式化通知消息（作为文件的caption）
         message = f"⏰ {timestamp}\n\n"
         message += f"开始运行 *{project_name}* 项目脚本，对以下网页解析：\n"
         for i, url in enumerate(webpages, 1):
             message += f"{i}. {url}\n"
-        message += f"已获取优选IP并保存到文件：`{file_name}`"
+        message += f"\n已获取优选IP并保存到文件：`{file_name}`"
         
-        # 发送Telegram通知
+        # 发送Telegram通知（文件+消息合并）
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-        if bot_token and chat_id:
-            send_telegram_notification(bot_token, chat_id, message, file_path)
-        else:
-            print("Telegram配置参数缺失，跳过通知")
+        send_telegram_notification(bot_token, chat_id, message, file_path)
     else:
         print("未从任何网页提取到有效IP")
 
