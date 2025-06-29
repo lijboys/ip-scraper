@@ -4,5 +4,5 @@ cmcc.090227.xyz#移动官方优选
 cfip.xxxxxxxx.tk#OTC提供维护官方优选
 bestcf.onecf.eu.org#Mingyu提供维护官方优选
 cf.zhetengsha.eu.org#小一提供维护官方优选
-bestproxy.onecf.eu.org#Mingyu提供维护反代优选
-proxy.xxxxxxxx.tk#OTC提供维护反代优选
+10.23.240.74:1234#CfNat
+127.0.0.1:1234#CfNat
