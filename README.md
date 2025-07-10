@@ -162,6 +162,6 @@ on:
 
 以下是本项目 Stars 数量随时间的变化趋势（自动更新）：
 
-![Stars 增长趋势](https://lijboys/ip-scraper/your-repo.svg)
+![Stars 增长趋势](https://starchart.cc/lijboys/ip-scraper.svg)
 
 > 注：将 `fakeusername/fake-repo-name` 替换为你的 GitHub 用户名和仓库名，即可显示真实数据。例如：`https://starchart.cc/yourusername/your-repo.svg`。该图表由 [starchart.cc](https://starchart.cc/) 自动生成并更新。
