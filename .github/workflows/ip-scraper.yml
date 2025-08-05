@@ -41,34 +41,3 @@ jobs:
           else
             echo "无更改需要提交"
           fi
-
-      - name: 清理旧运行记录（保留最近12条）
-        runs-on: ubuntu-latest
-        needs: scrape-ip  # 依赖主任务完成后清理
-        steps:
-          - name: 安装 GitHub CLI 和 jq
-            run: |
-              # 安装 GitHub CLI
-              type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-              curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-              && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-              && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-              && sudo apt update \
-              && sudo apt install gh -y
-
-              # 安装 jq
-              sudo apt install jq -y
-
-          - name: 认证并清理旧记录
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            run: |
-              gh auth login --with-token <<< "$GITHUB_TOKEN"
-              WORKFLOW_NAME="IP 数据采集"
-              WORKFLOW_ID=$(gh workflow list --json name,id | jq -r --arg name "$WORKFLOW_NAME" '.[] | select(.name == $name) | .id')
-              RUN_IDS=$(gh run list --workflow $WORKFLOW_ID --limit 100 --json databaseId,createdAt \
-                        | jq -r 'sort_by(.createdAt) | reverse | .[12:] | .[].databaseId')
-              for RUN_ID in $RUN_IDS; do
-                  echo "删除旧记录: $RUN_ID"
-                  gh run delete $RUN_ID --confirm
-              done
