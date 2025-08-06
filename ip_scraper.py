@@ -19,15 +19,14 @@ def get_ip_country_code(ip):
         return "XX"
 
 def fetch_html_ips_with_speed(url):
-    """从HTML表格网页提取速度最快的5个IP（适配不同网页结构）"""
+    """从HTML表格网页提取速度最快的5个IP（针对不同网页结构优化）"""
     # 增强请求头，模拟真实浏览器
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'max-age=0'
+        'Upgrade-Insecure-Requests': '1'
     }
     
     try:
@@ -48,55 +47,48 @@ def fetch_html_ips_with_speed(url):
             print(f"❌ {url} 表格中无数据行")
             return []
         
-        # 尝试识别IP和速度所在列（适配不同网页）
-        # 先假设IP在第1列，速度在第6列（原逻辑）；如果无结果，尝试其他列
-        ip_col_index = 0
-        speed_col_index = 5
-        temp_data = []
+        # 根据网页URL选择对应的列索引（精确适配）
+        if "cf.090227.xyz" in url:
+            # 从截图可知：IP在第2列（索引1），速度在第5列（索引4）
+            ip_col_index = 1
+            speed_col_index = 4
+            print(f"ℹ️ 检测到cf.090227.xyz，使用专用列索引规则：IP列={ip_col_index}，速度列={speed_col_index}")
+        elif "ip.164746.xyz" in url:
+            # 假设原网页IP在第1列，速度在第6列
+            ip_col_index = 0
+            speed_col_index = 5
+            print(f"ℹ️ 检测到ip.164746.xyz，使用专用列索引规则：IP列={ip_col_index}，速度列={speed_col_index}")
+        else:
+            # 默认规则（备用）
+            ip_col_index = 0
+            speed_col_index = 5
+            print(f"ℹ️ 使用默认列索引规则：IP列={ip_col_index}，速度列={speed_col_index}")
         
+        # 提取IP和速度数据
         for row in rows:
             cols = row.find_all('td')
-            if len(cols) < max(ip_col_index, speed_col_index) + 1:
-                continue  # 跳过列数不足的行
+            # 确保列数足够
+            if len(cols) <= max(ip_col_index, speed_col_index):
+                continue
             
-            # 提取IP
+            # 提取IP地址
             ip_text = cols[ip_col_index].text.strip()
             ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', ip_text)
             if not ip_match:
-                continue
+                continue  # 跳过非IP格式
             ip = ip_match.group(1)
             
-            # 提取速度
+            # 提取速度信息
             speed = cols[speed_col_index].text.strip()
             if re.search(r'\d+\.\d+\s*(MB|KB)/s', speed):
-                temp_data.append((ip, speed))
+                ip_data.append((ip, speed))
         
-        # 如果第1种列索引无结果，尝试IP在第2列，速度在第7列（适配cf.090227.xyz可能的结构）
-        if not temp_data:
-            print(f"⚠️ {url} 尝试第2种列索引规则")
-            ip_col_index = 1
-            speed_col_index = 6
-            for row in rows:
-                cols = row.find_all('td')
-                if len(cols) < max(ip_col_index, speed_col_index) + 1:
-                    continue
-                
-                ip_text = cols[ip_col_index].text.strip()
-                ip_match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', ip_text)
-                if not ip_match:
-                    continue
-                ip = ip_match.group(1)
-                
-                speed = cols[speed_col_index].text.strip()
-                if re.search(r'\d+\.\d+\s*(MB|KB)/s', speed):
-                    temp_data.append((ip, speed))
-        
-        if not temp_data:
+        if not ip_data:
             print(f"❌ {url} 未提取到有效IP和速度数据")
             return []
         
-        # 按速度排序取前5个
-        sorted_ips = sorted(temp_data, key=lambda x: parse_speed(x[1]), reverse=True)[:5]
+        # 按速度排序并取前5个
+        sorted_ips = sorted(ip_data, key=lambda x: parse_speed(x[1]), reverse=True)[:5]
         print(f"✅ {url} 成功提取5个最快IP")
         return sorted_ips
         
@@ -136,7 +128,7 @@ def parse_speed(speed_str):
         return 0
 
 def send_telegram_notification(bot_token, chat_id, message, file_path=None):
-    """发送Telegram通知（增强错误处理）"""
+    """发送Telegram通知"""
     if not bot_token or not chat_id:
         print("⚠️ Telegram配置缺失，跳过通知")
         return False
@@ -209,22 +201,16 @@ def extract_fastest_ips():
     else:
         print("⚠️ 未提取到任何有效IP，不生成文件")
     
-    # 生成通知消息（包含各网页状态）
+    # 生成通知消息
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    project_name = "IP采集与筛选工具"
-    message = f"⏰ {timestamp}\n\n"
-    message += f"*{project_name}* 运行结果：\n"
-    # 逐个说明网页状态
+    message = f"⏰ {timestamp}\n\nIP采集结果：\n"
     for i, url in enumerate(speed_urls, 1):
         count = len([x for x in speed_ips_list if x in [item for sublist in results[i-1:i] for item in sublist]])
-        status = f"成功提取 {count} 个IP" if count > 0 else "未提取到有效IP"
-        message += f"{i}. {url}\n  状态：{status}\n"
-    # 文本网页状态
-    message += f"{len(speed_urls)+1}. {text_url}\n  状态：{'成功提取 '+str(len(text_ips))+' 个IP' if text_ips else '未提取到有效IP'}\n"
-    # 文件状态
-    message += f"\n文件状态：{'已生成 `89.txt`' if all_results else '无有效IP，未生成文件'}"
+        message += f"{i}. {url}：{count}个IP\n"
+    message += f"{len(speed_urls)+1}. {text_url}：{len(text_ips)}个IP\n"
+    message += f"\n总计：{len(all_results)}个IP"
     
-    # 发送Telegram通知（无论是否有文件都通知）
+    # 发送Telegram通知
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     send_telegram_notification(bot_token, chat_id, message, file_path if all_results else None)
@@ -233,3 +219,4 @@ if __name__ == "__main__":
     print("===== 开始执行IP采集任务 =====")
     extract_fastest_ips()
     print("===== 任务执行完毕 =====")
+    
