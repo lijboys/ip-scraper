@@ -135,13 +135,23 @@ def extract_fastest_ips():
     print(f"✅ 已保存 {len(all_ips)} 个IP到 {file_path}")
     
     # 生成合并发送的文本内容
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    caption = f"⏰ {timestamp}\n\nIP采集结果：\n"
+    # 1. 标题和采集结果
+    caption = "IP采集结果：\n"
     for i, url in enumerate(speed_urls, 1):
         count = sum(1 for ip, _ in speed_ips if any(url in u for u in speed_urls[i-1:i]))
         caption += f"{i}. {url}：{count}个IP\n"
     caption += f"{len(speed_urls)+1}. {text_url}：{len(text_ips)}个IP\n"
-    caption += f"\n总计：{len(all_ips)}个IP"
+    caption += f"\n总计：{len(all_ips)}个IP\n"
+    
+    # 2. GitHub Raw地址（单独一行）
+    caption += "https://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
+    
+    # 3. 空行分隔
+    caption += "\n"
+    
+    # 4. 时间戳
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    caption += f"⏰ {timestamp}"
     
     # 发送合并消息（文本+文件）
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
