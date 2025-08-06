@@ -4,6 +4,7 @@ import os
 import re
 import concurrent.futures
 import time
+import datetime  # 新增：用于时区处理
 import random
 
 def get_ip_country_code(ip):
@@ -85,21 +86,19 @@ def send_telegram_combined_message(bot_token, chat_id, caption, file_path):
         return False
     
     try:
-        # 使用sendDocument API，将文本作为caption与文件一起发送
         url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
         
         with open(file_path, 'rb') as f:
             files = {'document': (os.path.basename(file_path), f)}
             data = {
                 'chat_id': chat_id,
-                'caption': caption,  # 文本内容作为文件说明
+                'caption': caption,
                 'parse_mode': 'Markdown'
             }
             
             response = requests.post(url, data=data, files=files, timeout=20)
             response.raise_for_status()
             
-            # 检查API响应
             result = response.json()
             if result.get('ok'):
                 print("✅ 文本和文件已合并发送成功")
@@ -112,6 +111,14 @@ def send_telegram_combined_message(bot_token, chat_id, caption, file_path):
         print(f"❌ 发送失败: {str(e)}")
         return False
 
+def get_china_time():
+    """获取中国标准时间(UTC+8)"""
+    # 计算UTC时间与北京时间的时差（+8小时）
+    utc_now = datetime.datetime.utcnow()
+    china_time = utc_now + datetime.timedelta(hours=8)
+    # 格式化输出：年-月-日 时:分:秒
+    return china_time.strftime("%Y-%m-%d %H:%M:%S")
+
 def extract_fastest_ips():
     """主函数"""
     speed_urls = [
@@ -121,7 +128,7 @@ def extract_fastest_ips():
     text_url = "https://ipdb.api.030101.xyz/?type=bestcf&country=true"
     
     # 采集IP
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.Threadpoolexecutor(max_workers=2) as executor:
         speed_ips = sum(executor.map(fetch_html_ips_with_speed, speed_urls), [])
     text_ips = fetch_text_ips(text_url)
     
@@ -135,7 +142,6 @@ def extract_fastest_ips():
     print(f"✅ 已保存 {len(all_ips)} 个IP到 {file_path}")
     
     # 生成合并发送的文本内容
-    # 1. 标题和采集结果
     caption = "IP采集结果：\n"
     for i, url in enumerate(speed_urls, 1):
         count = sum(1 for ip, _ in speed_ips if any(url in u for u in speed_urls[i-1:i]))
@@ -143,17 +149,16 @@ def extract_fastest_ips():
     caption += f"{len(speed_urls)+1}. {text_url}：{len(text_ips)}个IP\n"
     caption += f"\n总计：{len(all_ips)}个IP\n"
     
-    # 2. GitHub Raw地址（单独一行）
+    # GitHub Raw地址
     caption += "https://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
     
-    # 3. 空行分隔
+    # 空行分隔
     caption += "\n"
     
-    # 4. 时间戳
-    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    caption += f"⏰ {timestamp}"
+    # 中国时间戳（关键修改）
+    caption += f"⏰ {get_china_time()}"
     
-    # 发送合并消息（文本+文件）
+    # 发送合并消息
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     send_telegram_combined_message(bot_token, chat_id, caption, file_path)
