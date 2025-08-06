@@ -4,7 +4,6 @@ import os
 import re
 import concurrent.futures
 import time
-import random
 
 def get_ip_country_code(ip):
     """通过ipinfo.io接口查询IP所属国家代码"""
@@ -17,8 +16,8 @@ def get_ip_country_code(ip):
     except requests.RequestException:
         return "XX"  # 查询失败时返回XX
 
-def fetch_html_ips_with_speed(url):
-    """从HTML表格网页提取速度最快的5个IP（独立处理每个网页）"""
+def fetch_html_ips(url):
+    """从HTML表格网页提取速度最快的5个IP"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
     }
@@ -53,10 +52,10 @@ def fetch_html_ips_with_speed(url):
             if re.search(r'\d+\.\d+\s*(MB|KB)/s', speed):
                 ip_data.append((ip, speed))
         
-        # 按速度排序并取前5个（每个网页独立取5个）
+        # 按速度排序并取前5个
         if ip_data:
             sorted_ips = sorted(ip_data, key=lambda x: parse_speed(x[1]), reverse=True)[:5]
-            print(f"从{url}成功获取5个最快IP")
+            print(f"从{url}成功获取{len(sorted_ips)}个最快IP")
             return sorted_ips
         else:
             print(f"在{url}中未找到有效IP速度数据")
@@ -96,37 +95,38 @@ def parse_speed(speed_str):
         return 0
 
 def send_telegram_notification(bot_token, chat_id, message, file_path=None):
-    """发送Telegram通知（先消息后文件，文件在下方）"""
+    """发送Telegram通知（文件+消息合并发送）"""
     try:
         if not bot_token or not chat_id:
             print("Telegram配置参数缺失，跳过通知")
             return False
             
-        # 先发送文本消息
-        text_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",
-            "disable_web_page_preview": True
-        }
-        response = requests.post(text_url, data=payload)
-        response.raise_for_status()
-        
-        # 随机等待1-3秒，避免被视为批量发送
-        time.sleep(random.uniform(1, 3))
-        
-        # 再发送文件
+        # 合并发送文件和消息（通过caption参数）
         if file_path and os.path.exists(file_path):
             file_url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
             with open(file_path, 'rb') as f:
                 files = {'document': (os.path.basename(file_path), f)}
-                payload = {"chat_id": chat_id}
+                payload = {
+                    "chat_id": chat_id,
+                    "caption": message,  # 消息作为文件的标题
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": True
+                }
                 response = requests.post(file_url, data=payload, files=files)
                 response.raise_for_status()
-            print("Telegram通知（消息+文件）发送成功")
-            return True
+                print("Telegram通知发送成功")
+                return True
         else:
+            # 无文件时仅发送消息（作为备用）
+            text_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "Markdown",
+                "disable_web_page_preview": True
+            }
+            response = requests.post(text_url, data=payload)
+            response.raise_for_status()
             print("Telegram消息发送成功")
             return True
             
@@ -138,33 +138,26 @@ def send_telegram_notification(bot_token, chat_id, message, file_path=None):
     return False
 
 def extract_fastest_ips():
-    """从多个网页提取IP，两个带速度的网页各取5个，文本网页全取"""
-    # 定义三个网页（两个带速度信息，一个纯文本）
-    speed_urls = [
-        "https://ip.164746.xyz/",
-        "https://cf.090227.xyz/"
-    ]
+    """从多个网页提取IP并按要求保存到89.txt"""
+    # 定义两个网页（HTML表格和纯文本）
+    html_url = "https://ip.164746.xyz/"
     text_url = "https://ipdb.api.030101.xyz/?type=bestcf&country=true"
     
-    # 分别获取两个带速度网页的前5个IP（独立处理）
-    speed_ips_list = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        results = list(executor.map(fetch_html_ips_with_speed, speed_urls))
-        for result in results:
-            speed_ips_list.extend(result)
+    # 获取第一个网页的前5个最快IP
+    html_ips = fetch_html_ips(html_url)
     
-    # 获取文本网页的所有IP
+    # 获取第二个网页的所有IP
     text_ips = fetch_text_ips(text_url)
     
     # 处理结果
     all_results = []
     
-    # 处理带速度的IP（保留来源网页的独立性，各取5个）
-    for ip, speed in speed_ips_list:
+    # 处理第一个网页的IP（格式: ip#国家代码-速度）
+    for ip, speed in html_ips:
         country_code = get_ip_country_code(ip)
         all_results.append(f"{ip}#{country_code}-{speed}")
     
-    # 处理纯文本IP
+    # 处理第二个网页的IP（格式: ip#国家代码）
     for ip in text_ips:
         country_code = get_ip_country_code(ip)
         all_results.append(f"{ip}#{country_code}")
@@ -179,16 +172,17 @@ def extract_fastest_ips():
         # 生成Telegram通知内容
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         project_name = "IP采集与筛选工具"
-        all_urls = speed_urls + [text_url]
+        webpages = [html_url, text_url]
+        file_name = os.path.basename(file_path)
         
-        # 格式化通知消息
+        # 格式化通知消息（作为文件的caption）
         message = f"⏰ {timestamp}\n\n"
         message += f"开始运行 *{project_name}* 项目脚本，对以下网页解析：\n"
-        for i, url in enumerate(all_urls, 1):
+        for i, url in enumerate(webpages, 1):
             message += f"{i}. {url}\n"
-        message += f"\n已获取优选IP（每个带速度网页各取5个）并保存到文件：`{file_path}`"
+        message += f"\n已获取优选IP并保存到文件：`{file_name}`"
         
-        # 发送Telegram通知
+        # 发送Telegram通知（文件+消息合并）
         bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
         chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
         send_telegram_notification(bot_token, chat_id, message, file_path)
@@ -199,4 +193,3 @@ if __name__ == "__main__":
     print("正在执行IP采集任务...")
     extract_fastest_ips()
     print("任务执行完毕！")
-    
