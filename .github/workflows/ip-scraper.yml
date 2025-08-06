@@ -2,33 +2,37 @@ name: IP 数据采集
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # 每4小时执行一次
+    - cron: '0 */8 * * *'  # 每4小时执行一次
   workflow_dispatch:  # 允许手动触发
 
 jobs:
   scrape-ip:
     runs-on: ubuntu-latest
+    
     permissions:
-      contents: write  # 写入权限（提交文件）
-      actions: write   # 删除运行记录的权限
-
+      contents: write  # 授予写入权限
+      
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # Telegram Bot令牌
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}      # 聊天ID
+      
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-
+      
       - name: 配置 Python 环境
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
+      
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
-
+      
       - name: 运行 IP 采集脚本
         run: python ip_scraper.py
-
+      
       - name: 提交并推送更改
         if: github.event_name == 'workflow_dispatch' || github.event.schedule
         run: |
