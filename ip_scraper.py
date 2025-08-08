@@ -127,13 +127,18 @@ def extract_fastest_ips():
     ]
     text_url = "https://ipdb.api.030101.xyz/?type=bestcf&country=true"
     
-    # 采集IP
+    # 采集IP，区分来源
+    speed_ips_dict = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        speed_ips = sum(executor.map(fetch_html_ips_with_speed, speed_urls), [])
+        results = list(executor.map(fetch_html_ips_with_speed, speed_urls))
+        for url, ips in zip(speed_urls, results):
+            speed_ips_dict[url] = ips
     text_ips = fetch_text_ips(text_url)
     
     # 保存结果
-    all_ips = [f"{ip}#{get_ip_country_code(ip)}-{speed}" for ip, speed in speed_ips]
+    all_ips = []
+    for url in speed_urls:
+        all_ips += [f"{ip}#{get_ip_country_code(ip)}-{speed}" for ip, speed in speed_ips_dict[url]]
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
     
     file_path = '89.txt'
@@ -144,7 +149,7 @@ def extract_fastest_ips():
     # 生成合并发送的文本内容
     caption = "IP采集结果：\n"
     for i, url in enumerate(speed_urls, 1):
-        count = sum(1 for ip, _ in speed_ips if any(url in u for u in speed_urls[i-1:i]))
+        count = len(speed_ips_dict[url])
         caption += f"{i}. {url}：{count}个IP\n"
     caption += f"{len(speed_urls)+1}. {text_url}：{len(text_ips)}个IP\n"
     caption += f"\n总计：{len(all_ips)}个IP\n"
