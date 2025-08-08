@@ -154,6 +154,29 @@ on:
   - 检查 `ip-scraper.yml` 配置是否正确
   - 查看 Actions 运行日志，排查具体错误
 
+
+ ## 自动清理 GitHub Actions 运行记录
+
+本项目包含一个自动清理 GitHub Actions 运行记录的工作流脚本：
+
+- **脚本位置**：`.github/workflows/delete-all-runs.yml`
+- **功能**：每两个月定时自动批量删除所有 Actions 运行历史，减少仓库空间占用。
+- **触发方式**：
+  - 定时：每年 1、3、5、7、9、11 月的 1 日 00:00（UTC）自动触发
+  - 手动：进入 GitHub Actions 页面手动触发
+
+### 如何启用
+
+1. **生成并保存 Token**  
+   在 GitHub 个人设置生成一个带有 `repo` 和 `actions` 权限的 PAT（Personal Access Token）。
+   在仓库设置 → Secrets → Actions 新建名为 `ACTIONS_DELETE_TOKEN` 的 secret，并填写该 Token。
+
+2. **注意事项**
+   - 一定要使用有删除权限的 Token（官方 GITHUB_TOKEN 无法删除）。
+   - 建议定期备份你的 workflow 历史数据。
+
+---
+
 ## 许可证
 
 本项目采用 MIT 许可证，详情见 LICENSE 文件。
