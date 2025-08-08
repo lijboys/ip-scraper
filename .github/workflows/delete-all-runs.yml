@@ -2,6 +2,10 @@ name: Delete All Actions Runs
 
 on:
   workflow_dispatch: # 允许手动触发
+  schedule:
+    # 每两个月的1号 00:00（UTC）执行一次
+    # cron: 分 时 日 月 星期
+    - cron: '0 0 1 1,3,5,7,9,11 *'
 
 jobs:
   delete-runs:
