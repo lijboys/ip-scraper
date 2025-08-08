@@ -1,0 +1,59 @@
+name: Delete All Actions Runs
+
+on:
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  delete-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete All Workflow Runs
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTIONS_DELETE_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          pip install requests
+          python <<'EOF'
+          import os
+          import requests
+          import time
+
+          GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
+          REPO = os.environ['GITHUB_REPO']
+
+          headers = {
+              'Authorization': f'token {GITHUB_TOKEN}',
+              'Accept': 'application/vnd.github+json'
+          }
+
+          def get_runs(repo):
+              url = f'https://api.github.com/repos/{repo}/actions/runs'
+              params = {'per_page': 100}
+              runs = []
+              while url:
+                  r = requests.get(url, headers=headers, params=params)
+                  r.raise_for_status()
+                  data = r.json()
+                  runs.extend(data.get('workflow_runs', []))
+                  if 'next' in r.links:
+                      url = r.links['next']['url']
+                  else:
+                      url = None
+              return runs
+
+          def delete_run(repo, run_id):
+              url = f'https://api.github.com/repos/{repo}/actions/runs/{run_id}'
+              r = requests.delete(url, headers=headers)
+              if r.status_code == 204:
+                  print(f'Deleted run: {run_id}')
+              else:
+                  print(f'Failed to delete {run_id}: {r.status_code} {r.text}')
+
+          print('Getting workflow runs...')
+          runs = get_runs(REPO)
+          print(f'Total runs: {len(runs)}')
+          for run in runs:
+              delete_run(REPO, run['id'])
+              time.sleep(0.3)
+          print('All done!')
+          EOF
