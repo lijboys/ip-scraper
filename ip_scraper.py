@@ -128,7 +128,7 @@ def extract_fastest_ips():
     text_url = "https://ipdb.api.030101.xyz/?type=bestcf&country=true"
     
     # 采集IP
-    with concurrent.futures.Threadpoolexecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         speed_ips = sum(executor.map(fetch_html_ips_with_speed, speed_urls), [])
     text_ips = fetch_text_ips(text_url)
     
