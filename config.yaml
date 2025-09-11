@@ -1,5 +1,5 @@
 # 订阅锚点，排除了一些节点，例如 包含剩余，官网，到期，也可以在exclude-filter添加你需要排除的节点
-Providers: &Providers { exclude-filter: "Expire|到期|剩余|Traffic", type: http, interval: 86400, health-check: { enable: true, url: https://www.gstatic.com/generate_204, interval: 300 } }
+Providers: &Providers { exclude-filter: "Expire|到期|剩余|Traffic|官网", type: http, interval: 86400, health-check: { enable: true, url: https://www.gstatic.com/generate_204, interval: 300 } }
 # 官方配置文档: https://wiki.metacubex.one/config/proxy-providers/
 proxy-providers:
   p1:
