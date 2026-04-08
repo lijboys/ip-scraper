@@ -11,6 +11,12 @@ try:
 except ImportError:
     cloudscraper = None
 
+DEBUG_MODE = True
+
+def debug_log(msg):
+    if DEBUG_MODE:
+        print(msg)
+
 def get_client(use_cloudscraper=False):
     if use_cloudscraper and cloudscraper:
         return cloudscraper.create_scraper(browser={
@@ -19,6 +25,12 @@ def get_client(use_cloudscraper=False):
             'mobile': False
         })
     return requests.Session()
+
+def safe_preview(text, limit=500):
+    if not text:
+        return ""
+    text = text.replace("\n", "\\n").replace("\r", "")
+    return text[:limit]
 
 def get_ip_country_code(ip):
     try:
@@ -183,6 +195,12 @@ def fetch_wetest_ips(url):
         print(f"❌ {url} 处理错误: {str(e)}")
         return []
 
+def debug_response(prefix, response):
+    debug_log(f"🔍 [{prefix}] 状态码: {response.status_code}")
+    debug_log(f"🔍 [{prefix}] 最终URL: {response.url}")
+    debug_log(f"🔍 [{prefix}] Content-Type: {response.headers.get('Content-Type', '')}")
+    debug_log(f"🔍 [{prefix}] 预览: {safe_preview(response.text)}")
+
 def fetch_vps789_ips():
     candidate_urls = [
         "https://vps789.com/cfip",
@@ -210,12 +228,16 @@ def fetch_vps789_ips():
     for client_name, client in clients:
         for url in candidate_urls:
             try:
+                debug_log(f"🔍 [vps789] 开始请求 | client={client_name} | url={url}")
                 response = client.get(url, headers=headers, timeout=20)
-                response.raise_for_status()
                 response.encoding = response.apparent_encoding
+                debug_response(f"vps789 | {client_name}", response)
+
+                response.raise_for_status()
 
                 soup = BeautifulSoup(response.text, 'html.parser')
                 table = soup.find('table')
+                debug_log(f"🔍 [vps789 | {client_name}] 是否找到table: {'是' if table else '否'}")
                 if not table:
                     continue
 
@@ -225,7 +247,6 @@ def fetch_vps789_ips():
                     if len(cols) < 2:
                         continue
 
-                        # 注意：这里保持你的原样逻辑
                     ip = None
                     speed = None
                     best_latency = 999999
@@ -253,6 +274,7 @@ def fetch_vps789_ips():
                             "latency": f"{int(best_latency)}ms" if best_latency != 999999 else "未知"
                         })
 
+                debug_log(f"🔍 [vps789 | {client_name}] 解析到记录数: {len(records)}")
                 records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
                 selected = records[:3]
                 if selected:
@@ -261,11 +283,10 @@ def fetch_vps789_ips():
 
             except Exception as e:
                 last_error = e
+                debug_log(f"🔍 [vps789] 请求异常 | client={client_name} | url={url} | error={str(e)}")
                 continue
 
     print(f"❌ vps789 所有方式都失败: {last_error}")
-    if not cloudscraper:
-        print("⚠️ 建议安装 cloudscraper 以提升成功率")
     return []
 
 def fetch_hostmonit_ips(url):
@@ -279,21 +300,25 @@ def fetch_hostmonit_ips(url):
 
     clients = []
     if cloudscraper:
-        clients.append(get_client(True))
-    clients.append(get_client(False))
+        clients.append(("cloudscraper", get_client(True)))
+    clients.append(("requests", get_client(False)))
 
     last_error = None
-    for client in clients:
+    for client_name, client in clients:
         try:
+            debug_log(f"🔍 [hostmonit] 开始请求 | client={client_name} | url={url}")
             response = client.get(url, headers=headers, timeout=20)
-            response.raise_for_status()
             response.encoding = response.apparent_encoding
+            debug_response(f"hostmonit | {client_name}", response)
+
+            response.raise_for_status()
             text = response.text.strip()
 
             records = []
 
             try:
                 data = response.json()
+                debug_log(f"🔍 [hostmonit | {client_name}] JSON类型: {type(data).__name__}")
                 if isinstance(data, list):
                     for item in data:
                         if not isinstance(item, dict):
@@ -317,8 +342,8 @@ def fetch_hostmonit_ips(url):
                                 "latency": latency if latency else "999999ms",
                                 "name": f"{datacenter}-{carrier}"
                             })
-            except:
-                pass
+            except Exception as je:
+                debug_log(f"🔍 [hostmonit | {client_name}] JSON解析失败: {str(je)}")
 
             if not records:
                 temp = []
@@ -345,19 +370,21 @@ def fetch_hostmonit_ips(url):
 
                 records = temp
 
+            debug_log(f"🔍 [hostmonit | {client_name}] 解析到记录数: {len(records)}")
+
             records = [x for x in records if x.get("ip")]
             records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
             selected = records[:2]
             if selected:
+                print(f"✅ hostmonit 使用 {client_name} 成功: {url}")
                 return [(x["ip"], x["name"]) for x in selected]
 
         except Exception as e:
             last_error = e
+            debug_log(f"🔍 [hostmonit] 请求异常 | client={client_name} | url={url} | error={str(e)}")
             continue
 
     print(f"❌ {url} 处理错误: {str(last_error)}")
-    if not cloudscraper:
-        print("⚠️ 建议安装 cloudscraper 以提升成功率")
     return []
 
 def send_telegram_combined_message(bot_token, chat_id, caption, file_path):
@@ -431,32 +458,26 @@ def extract_fastest_ips():
 
     all_ips = []
 
-    # 1. ip.164746.xyz 保持原样
     for item in speed_ips_dict.get(normal_speed_url, []):
         ip, speed = item
         all_ips.append(f"{ip}#{get_ip_country_code(ip)}-{speed}")
 
-    # 2. wetest 新增来源：只保留 IP#数据中心-线路
     for url in wetest_urls:
         for item in speed_ips_dict.get(url, []):
             ip, name = item
             all_ips.append(f"{ip}#{name}")
 
-    # 3. vps789 保持原样
     for item in speed_ips_dict.get("vps789", []):
         ip, speed, latency = item
         all_ips.append(f"{ip}#{latency}-{speed}")
 
-    # 4. hostmonit 新增来源：只保留 IP#数据中心-线路
     for url in hostmonit_urls:
         for item in speed_ips_dict.get(url, []):
             ip, name = item
             all_ips.append(f"{ip}#{name}")
 
-    # 5. ipdb.api.030101.xyz 保持原样
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
-    # 去重保序
     seen = set()
     deduped_ips = []
     for line in all_ips:
@@ -470,7 +491,6 @@ def extract_fastest_ips():
         f.write('\n'.join(deduped_ips))
     print(f"✅ 已保存 {len(deduped_ips)} 个IP到 {file_path}")
 
-    # 精简通知
     failed_sources = []
 
     if len(speed_ips_dict.get(normal_speed_url, [])) == 0:
@@ -492,10 +512,8 @@ def extract_fastest_ips():
 
     caption = "IP采集完成\n"
     caption += f"总计：{len(deduped_ips)}个IP\n"
-
     if failed_sources:
         caption += f"异常：{'、'.join(failed_sources)}\n"
-
     caption += "下载：\n"
     caption += "https://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
     caption += f"⏰ {get_china_time()}"
@@ -506,5 +524,6 @@ def extract_fastest_ips():
 
 if __name__ == "__main__":
     print("===== 开始执行IP采集任务 =====")
+    print(f"DEBUG_MODE={DEBUG_MODE}, cloudscraper={'已安装' if cloudscraper else '未安装'}")
     extract_fastest_ips()
     print("===== 任务执行完毕 =====")
