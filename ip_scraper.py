@@ -5,7 +5,6 @@ import re
 import concurrent.futures
 import datetime
 import ipaddress
-import json
 
 def get_ip_country_code(ip):
     """查询IP所属国家代码"""
@@ -56,7 +55,7 @@ def fetch_text_ips(url):
         return []
 
 def fetch_ip164746(url):
-    """提取 ip.164746.xyz 中的IP和速度"""
+    """保持原样：提取 ip.164746.xyz 中的IP和速度"""
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=20)
@@ -99,11 +98,10 @@ def fetch_ip164746(url):
 
 def fetch_wetest_ips(url):
     """
-    提取 wetest 页面：
+    新增来源专用：
     每个页面按 移动/联通/电信 各取一个
-    排序规则：延迟低优先，速度高优先
+    名字格式：数据中心-线路
     输出: [(ip, speed, latency, name), ...]
-    name 格式: 数据中心-线路
     """
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -157,7 +155,7 @@ def fetch_wetest_ips(url):
                 if not datacenter:
                     dc_match = re.fullmatch(r'[A-Z]{3}', text.strip())
                     if dc_match:
-                        datacenter = text.strip()
+                        datacenter = dc_match.group(0)
 
             if ip and speed and latency:
                 if not datacenter:
@@ -166,8 +164,7 @@ def fetch_wetest_ips(url):
                     "ip": ip,
                     "speed": speed,
                     "latency": latency,
-                    "datacenter": datacenter,
-                    "carrier": carrier
+                    "name": f"{datacenter}-{carrier}"
                 })
 
         results = []
@@ -177,8 +174,7 @@ def fetch_wetest_ips(url):
                 continue
             items.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
             best = items[0]
-            name = f'{best["datacenter"]}-{best["carrier"]}'
-            results.append((best["ip"], best["speed"], best["latency"], name))
+            results.append((best["ip"], best["speed"], best["latency"], best["name"]))
 
         return results
 
@@ -188,9 +184,9 @@ def fetch_wetest_ips(url):
 
 def fetch_vps789_ips(url):
     """
-    提取 vps789.com/cfip/
-    取 3 个：速度快、延迟低
-    输出: [(ip, speed, latency, name), ...]
+    保持原样逻辑：
+    只取3个延迟低速度快的
+    不使用 数据中心-线路 的命名规则
     """
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -212,9 +208,7 @@ def fetch_vps789_ips(url):
 
             ip = None
             speed = None
-            datacenter = None
             best_latency = 999999
-            carrier_latency = []
 
             for text in cols:
                 if not ip:
@@ -226,38 +220,22 @@ def fetch_vps789_ips(url):
                 if speed_match:
                     speed = speed_match.group(0)
 
-                latency_matches = re.findall(r'(\d+(?:\.\d+)?)\s*ms', text, re.I)
-                for lm in latency_matches:
+                for lm in re.findall(r'(\d+(?:\.\d+)?)\s*ms', text, re.I):
                     try:
-                        carrier_latency.append(float(lm))
+                        best_latency = min(best_latency, float(lm))
                     except:
                         pass
 
-                dc_match = re.fullmatch(r'[A-Z]{3}', text.strip())
-                if dc_match:
-                    datacenter = text.strip()
+            if ip and speed:
+                records.append({
+                    "ip": ip,
+                    "speed": speed,
+                    "latency": f"{int(best_latency)}ms" if best_latency != 999999 else "未知"
+                })
 
-            if carrier_latency:
-                best_latency = min(carrier_latency)
-
-            if not ip or not speed:
-                continue
-
-            if not datacenter:
-                datacenter = "VPS"
-
-            records.append({
-                "ip": ip,
-                "speed": speed,
-                "latency": f"{int(best_latency)}ms" if best_latency != 999999 else "未知",
-                "latency_value": best_latency,
-                "name": f"{datacenter}-VPS789"
-            })
-
-        records.sort(key=lambda x: (x["latency_value"], -parse_speed(x["speed"])))
+        records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
         selected = records[:3]
-
-        return [(x["ip"], x["speed"], x["latency"], x["name"]) for x in selected]
+        return [(x["ip"], x["speed"], x["latency"]) for x in selected]
 
     except Exception as e:
         print(f"❌ {url} 处理错误: {str(e)}")
@@ -265,11 +243,9 @@ def fetch_vps789_ips(url):
 
 def fetch_hostmonit_ips(url):
     """
-    提取 hostmonit CloudFlareYes / CloudFlareYesV6
-    各取2个：延迟低、速度快
-    命名规则：数据中心-线路
-    若识别不到，则尽量回退
-    输出: [(ip, speed, latency, name), ...]
+    新增来源专用：
+    hostmonit 各取2个，按延迟低速度快
+    名字格式：数据中心-线路
     """
     headers = {
         'User-Agent': 'Mozilla/5.0',
@@ -283,7 +259,7 @@ def fetch_hostmonit_ips(url):
 
         records = []
 
-        # 优先尝试 JSON
+        # 尝试 JSON
         try:
             data = response.json()
             if isinstance(data, list):
@@ -291,45 +267,34 @@ def fetch_hostmonit_ips(url):
                     if not isinstance(item, dict):
                         continue
 
-                    ip = (
-                        item.get("ip") or item.get("host") or item.get("address")
-                        or item.get("ipv4") or item.get("ipv6")
-                    )
-                    speed = (
-                        str(item.get("download_speed") or item.get("speed") or item.get("avg_speed") or "")
-                    )
-                    latency = (
-                        str(item.get("latency") or item.get("delay") or item.get("ping") or "")
-                    )
-                    datacenter = (
-                        item.get("colo") or item.get("datacenter") or item.get("city") or "HM"
-                    )
-                    carrier = (
-                        item.get("isp") or item.get("carrier") or item.get("line") or "HostMonit"
-                    )
+                    ip = item.get("ip") or item.get("host") or item.get("address") or item.get("ipv4") or item.get("ipv6")
+                    speed = str(item.get("download_speed") or item.get("speed") or item.get("avg_speed") or "")
+                    latency = str(item.get("latency") or item.get("delay") or item.get("ping") or "")
+                    datacenter = item.get("colo") or item.get("datacenter") or item.get("city") or "HM"
+                    carrier = item.get("isp") or item.get("carrier") or item.get("line") or "优选"
 
-                    if ip and speed:
+                    if ip:
                         if re.fullmatch(r'\d+(?:\.\d+)?', speed):
                             speed = f"{speed}KB/s"
                         if re.fullmatch(r'\d+(?:\.\d+)?', latency):
                             latency = f"{latency}ms"
-                        records.append({
-                            "ip": ip,
-                            "speed": speed if re.search(r'(MB|KB)/s', speed, re.I) else "0KB/s",
-                            "latency": latency if re.search(r'(ms|毫秒)', latency, re.I) else "999999ms",
-                            "name": f"{datacenter}-{carrier}"
-                        })
+
+                        if re.search(r'(MB|KB)/s', speed, re.I) and re.search(r'(ms|毫秒)', latency, re.I):
+                            records.append({
+                                "ip": ip,
+                                "speed": speed,
+                                "latency": latency,
+                                "name": f"{datacenter}-{carrier}"
+                            })
         except:
             pass
 
-        # 如果不是 JSON，再尝试 HTML 表格
+        # 尝试 HTML
         if not records:
             soup = BeautifulSoup(text, 'html.parser')
             table = soup.find('table')
             if table:
-                carriers = ["移动", "联通", "电信"]
                 temp = []
-
                 for row in table.find_all('tr')[1:]:
                     cols = [td.get_text(" ", strip=True) for td in row.find_all('td')]
                     if not cols:
@@ -360,10 +325,10 @@ def fetch_hostmonit_ips(url):
                         if not datacenter:
                             dc_match = re.fullmatch(r'[A-Z]{3}', col.strip())
                             if dc_match:
-                                datacenter = col.strip()
+                                datacenter = dc_match.group(0)
 
                         if not carrier:
-                            for c in carriers:
+                            for c in ["移动", "联通", "电信"]:
                                 if c in col:
                                     carrier = c
                                     break
@@ -372,7 +337,7 @@ def fetch_hostmonit_ips(url):
                         if not datacenter:
                             datacenter = "HM"
                         if not carrier:
-                            carrier = "HostMonit"
+                            carrier = "优选"
                         temp.append({
                             "ip": ip,
                             "speed": speed,
@@ -383,15 +348,15 @@ def fetch_hostmonit_ips(url):
                 temp.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
                 records = temp
 
-        # 如果还没有，则尝试纯文本正则
+        # 尝试纯文本
         if not records:
-            lines = text.splitlines()
             temp = []
-            for line in lines:
+            for line in text.splitlines():
                 ip_match = re.search(r'((?:\d{1,3}\.){3}\d{1,3}|(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4})', line)
                 speed_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', line, re.I)
                 latency_match = re.search(r'(\d+(?:\.\d+)?)\s*(ms|毫秒)', line, re.I)
                 dc_match = re.search(r'\b([A-Z]{3})\b', line)
+
                 carrier = None
                 for c in ["移动", "联通", "电信"]:
                     if c in line:
@@ -401,7 +366,7 @@ def fetch_hostmonit_ips(url):
                 if ip_match and speed_match and latency_match:
                     datacenter = dc_match.group(1) if dc_match else "HM"
                     if not carrier:
-                        carrier = "HostMonit"
+                        carrier = "优选"
                     temp.append({
                         "ip": ip_match.group(1),
                         "speed": speed_match.group(0),
@@ -412,13 +377,7 @@ def fetch_hostmonit_ips(url):
             temp.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
             records = temp
 
-        # 最终取2个
-        filtered = []
-        for x in records:
-            if parse_speed(x["speed"]) > 0 and parse_latency(x["latency"]) < 999999:
-                filtered.append(x)
-
-        selected = filtered[:2]
+        selected = records[:2]
         return [(x["ip"], x["speed"], x["latency"], x["name"]) for x in selected]
 
     except Exception as e:
@@ -505,29 +464,29 @@ def extract_fastest_ips():
 
     all_ips = []
 
-    # ip.164746.xyz
+    # 1. ip.164746.xyz 保持原样
     for item in speed_ips_dict.get(normal_speed_url, []):
         ip, speed = item
         all_ips.append(f"{ip}#{get_ip_country_code(ip)}-{speed}")
 
-    # wetest
+    # 2. wetest 新增来源按 数据中心-线路
     for url in wetest_urls:
         for item in speed_ips_dict.get(url, []):
             ip, speed, latency, name = item
             all_ips.append(f"{ip}#{name}-{latency}-{speed}")
 
-    # vps789
+    # 3. vps789 保持原样，不套用 数据中心-线路
     for item in speed_ips_dict.get(vps789_url, []):
-        ip, speed, latency, name = item
-        all_ips.append(f"{ip}#{name}-{latency}-{speed}")
+        ip, speed, latency = item
+        all_ips.append(f"{ip}#{latency}-{speed}")
 
-    # hostmonit
+    # 4. hostmonit 新增来源按 数据中心-线路
     for url in hostmonit_urls:
         for item in speed_ips_dict.get(url, []):
             ip, speed, latency, name = item
             all_ips.append(f"{ip}#{name}-{latency}-{speed}")
 
-    # text源
+    # 5. text_url 保持原样
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
     # 去重，保留顺序
