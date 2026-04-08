@@ -11,8 +11,16 @@ try:
 except ImportError:
     cloudscraper = None
 
+def get_client(use_cloudscraper=False):
+    if use_cloudscraper and cloudscraper:
+        return cloudscraper.create_scraper(browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'mobile': False
+        })
+    return requests.Session()
+
 def get_ip_country_code(ip):
-    """查询IP所属国家代码"""
     try:
         ip_obj = ipaddress.ip_address(ip)
         if ip_obj.version == 6:
@@ -25,7 +33,6 @@ def get_ip_country_code(ip):
         return "XX"
 
 def parse_speed(speed_str):
-    """解析速度字符串，统一转为 KB/s"""
     if not speed_str:
         return 0
     match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', speed_str, re.I)
@@ -36,7 +43,6 @@ def parse_speed(speed_str):
     return 0
 
 def parse_latency(latency_str):
-    """解析延迟，单位 ms，越小越好"""
     if not latency_str:
         return 999999
     match = re.search(r'(\d+(?:\.\d+)?)\s*毫秒', latency_str)
@@ -48,7 +54,6 @@ def parse_latency(latency_str):
     return 999999
 
 def fetch_text_ips(url):
-    """提取文本网页中的IP"""
     try:
         response = requests.get(url, timeout=15)
         response.raise_for_status()
@@ -60,7 +65,6 @@ def fetch_text_ips(url):
         return []
 
 def fetch_ip164746(url):
-    """保持原样：提取 ip.164746.xyz 中的IP和速度"""
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         response = requests.get(url, headers=headers, timeout=20)
@@ -101,10 +105,6 @@ def fetch_ip164746(url):
         return []
 
 def fetch_wetest_ips(url):
-    """
-    每个页面按 移动/联通/电信 各取一个
-    输出: [(ip, name), ...]
-    """
     headers = {
         'User-Agent': 'Mozilla/5.0',
         'Referer': 'https://www.wetest.vip/',
@@ -184,10 +184,6 @@ def fetch_wetest_ips(url):
         return []
 
 def fetch_vps789_ips():
-    """
-    vps789 多地址尝试
-    保持原样输出：[(ip, speed, latency)]
-    """
     candidate_urls = [
         "https://vps789.com/cfip",
         "https://vps789.com/cfip/",
@@ -195,74 +191,84 @@ def fetch_vps789_ips():
     ]
 
     headers = {
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Referer': 'https://vps789.com/',
-        'Accept-Language': 'zh-CN,zh;q=0.9'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Upgrade-Insecure-Requests': '1'
     }
 
+    clients = []
+    if cloudscraper:
+        clients.append(("cloudscraper", get_client(True)))
+    clients.append(("requests", get_client(False)))
+
     last_error = None
-    for url in candidate_urls:
-        try:
-            response = requests.get(url, headers=headers, timeout=20)
-            response.raise_for_status()
-            response.encoding = response.apparent_encoding
 
-            soup = BeautifulSoup(response.text, 'html.parser')
-            table = soup.find('table')
-            if not table:
-                continue
+    for client_name, client in clients:
+        for url in candidate_urls:
+            try:
+                response = client.get(url, headers=headers, timeout=20)
+                response.raise_for_status()
+                response.encoding = response.apparent_encoding
 
-            records = []
-            for row in table.find_all('tr')[1:]:
-                cols = [td.get_text(" ", strip=True) for td in row.find_all('td')]
-                if len(cols) < 2:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                table = soup.find('table')
+                if not table:
                     continue
 
-                ip = None
-                speed = None
-                best_latency = 999999
+                records = []
+                for row in table.find_all('tr')[1:]:
+                    cols = [td.get_text(" ", strip=True) for td in row.find_all('td')]
+                    if len(cols) < 2:
+                        continue
 
-                for text in cols:
-                    if not ip:
-                        ip_match = re.search(r'(\d{1,3}(?:\.\d{1,3}){3})', text)
-                        if ip_match:
-                            ip = ip_match.group(1)
+                        # 注意：这里保持你的原样逻辑
+                    ip = None
+                    speed = None
+                    best_latency = 999999
 
-                    speed_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', text, re.I)
-                    if speed_match:
-                        speed = speed_match.group(0)
+                    for text in cols:
+                        if not ip:
+                            ip_match = re.search(r'(\d{1,3}(?:\.\d{1,3}){3})', text)
+                            if ip_match:
+                                ip = ip_match.group(1)
 
-                    for lm in re.findall(r'(\d+(?:\.\d+)?)\s*ms', text, re.I):
-                        try:
-                            best_latency = min(best_latency, float(lm))
-                        except:
-                            pass
+                        speed_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', text, re.I)
+                        if speed_match:
+                            speed = speed_match.group(0)
 
-                if ip and speed:
-                    records.append({
-                        "ip": ip,
-                        "speed": speed,
-                        "latency": f"{int(best_latency)}ms" if best_latency != 999999 else "未知"
-                    })
+                        for lm in re.findall(r'(\d+(?:\.\d+)?)\s*ms', text, re.I):
+                            try:
+                                best_latency = min(best_latency, float(lm))
+                            except:
+                                pass
 
-            records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
-            selected = records[:3]
-            if selected:
-                print(f"✅ vps789 使用地址: {url}")
-            return [(x["ip"], x["speed"], x["latency"]) for x in selected]
+                    if ip and speed:
+                        records.append({
+                            "ip": ip,
+                            "speed": speed,
+                            "latency": f"{int(best_latency)}ms" if best_latency != 999999 else "未知"
+                        })
 
-        except Exception as e:
-            last_error = e
-            continue
+                records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
+                selected = records[:3]
+                if selected:
+                    print(f"✅ vps789 使用 {client_name} 成功: {url}")
+                    return [(x["ip"], x["speed"], x["latency"]) for x in selected]
 
-    print(f"❌ vps789 所有候选地址都失败: {last_error}")
+            except Exception as e:
+                last_error = e
+                continue
+
+    print(f"❌ vps789 所有方式都失败: {last_error}")
+    if not cloudscraper:
+        print("⚠️ 建议安装 cloudscraper 以提升成功率")
     return []
 
 def fetch_hostmonit_ips(url):
-    """
-    hostmonit 各取2个，输出: [(ip, name)]
-    403时优先尝试 cloudscraper
-    """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
         'Accept': 'application/json,text/plain,text/html,*/*',
@@ -271,98 +277,96 @@ def fetch_hostmonit_ips(url):
         'Origin': 'https://stock.hostmonit.com'
     }
 
-    try:
-        if cloudscraper:
-            scraper = cloudscraper.create_scraper(browser={
-                'browser': 'chrome',
-                'platform': 'windows',
-                'mobile': False
-            })
-            response = scraper.get(url, headers=headers, timeout=20)
-        else:
-            response = requests.get(url, headers=headers, timeout=20)
+    clients = []
+    if cloudscraper:
+        clients.append(get_client(True))
+    clients.append(get_client(False))
 
-        response.raise_for_status()
-        response.encoding = response.apparent_encoding
-        text = response.text.strip()
-
-        records = []
-
-        # JSON
+    last_error = None
+    for client in clients:
         try:
-            data = response.json()
-            if isinstance(data, list):
-                for item in data:
-                    if not isinstance(item, dict):
-                        continue
+            response = client.get(url, headers=headers, timeout=20)
+            response.raise_for_status()
+            response.encoding = response.apparent_encoding
+            text = response.text.strip()
 
-                    ip = item.get("ip") or item.get("host") or item.get("address") or item.get("ipv4") or item.get("ipv6")
-                    speed = str(item.get("download_speed") or item.get("speed") or item.get("avg_speed") or "")
-                    latency = str(item.get("latency") or item.get("delay") or item.get("ping") or "")
-                    datacenter = item.get("colo") or item.get("datacenter") or item.get("city") or "HM"
-                    carrier = item.get("isp") or item.get("carrier") or item.get("line") or "优选"
+            records = []
 
-                    if ip:
-                        if re.fullmatch(r'\d+(?:\.\d+)?', speed):
-                            speed = f"{speed}KB/s"
-                        if re.fullmatch(r'\d+(?:\.\d+)?', latency):
-                            latency = f"{latency}ms"
+            try:
+                data = response.json()
+                if isinstance(data, list):
+                    for item in data:
+                        if not isinstance(item, dict):
+                            continue
 
-                        records.append({
-                            "ip": ip,
-                            "speed": speed if speed else "0KB/s",
-                            "latency": latency if latency else "999999ms",
-                            "name": f"{datacenter}-{carrier}"
+                        ip = item.get("ip") or item.get("host") or item.get("address") or item.get("ipv4") or item.get("ipv6")
+                        speed = str(item.get("download_speed") or item.get("speed") or item.get("avg_speed") or "")
+                        latency = str(item.get("latency") or item.get("delay") or item.get("ping") or "")
+                        datacenter = item.get("colo") or item.get("datacenter") or item.get("city") or "HM"
+                        carrier = item.get("isp") or item.get("carrier") or item.get("line") or "优选"
+
+                        if ip:
+                            if re.fullmatch(r'\d+(?:\.\d+)?', speed):
+                                speed = f"{speed}KB/s"
+                            if re.fullmatch(r'\d+(?:\.\d+)?', latency):
+                                latency = f"{latency}ms"
+
+                            records.append({
+                                "ip": ip,
+                                "speed": speed if speed else "0KB/s",
+                                "latency": latency if latency else "999999ms",
+                                "name": f"{datacenter}-{carrier}"
+                            })
+            except:
+                pass
+
+            if not records:
+                temp = []
+                for line in text.splitlines():
+                    ip_match = re.search(r'((?:\d{1,3}\.){3}\d{1,3}|(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4})', line)
+                    speed_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', line, re.I)
+                    latency_match = re.search(r'(\d+(?:\.\d+)?)\s*(ms|毫秒)', line, re.I)
+                    dc_match = re.search(r'\b([A-Z]{3})\b', line)
+
+                    carrier = None
+                    for c in ["移动", "联通", "电信"]:
+                        if c in line:
+                            carrier = c
+                            break
+
+                    if ip_match:
+                        datacenter = dc_match.group(1) if dc_match else "HM"
+                        temp.append({
+                            "ip": ip_match.group(1),
+                            "speed": speed_match.group(0) if speed_match else "0KB/s",
+                            "latency": latency_match.group(0) if latency_match else "999999ms",
+                            "name": f"{datacenter}-{carrier or '优选'}"
                         })
-        except:
-            pass
 
-        # 纯文本兜底
-        if not records:
-            temp = []
-            for line in text.splitlines():
-                ip_match = re.search(r'((?:\d{1,3}\.){3}\d{1,3}|(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F]{0,4})', line)
-                speed_match = re.search(r'(\d+(?:\.\d+)?)\s*(MB|KB)/s', line, re.I)
-                latency_match = re.search(r'(\d+(?:\.\d+)?)\s*(ms|毫秒)', line, re.I)
-                dc_match = re.search(r'\b([A-Z]{3})\b', line)
+                records = temp
 
-                carrier = None
-                for c in ["移动", "联通", "电信"]:
-                    if c in line:
-                        carrier = c
-                        break
+            records = [x for x in records if x.get("ip")]
+            records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
+            selected = records[:2]
+            if selected:
+                return [(x["ip"], x["name"]) for x in selected]
 
-                if ip_match:
-                    datacenter = dc_match.group(1) if dc_match else "HM"
-                    temp.append({
-                        "ip": ip_match.group(1),
-                        "speed": speed_match.group(0) if speed_match else "0KB/s",
-                        "latency": latency_match.group(0) if latency_match else "999999ms",
-                        "name": f"{datacenter}-{carrier or '优选'}"
-                    })
+        except Exception as e:
+            last_error = e
+            continue
 
-            records = temp
-
-        records = [x for x in records if x.get("ip")]
-        records.sort(key=lambda x: (parse_latency(x["latency"]), -parse_speed(x["speed"])))
-        selected = records[:2]
-        return [(x["ip"], x["name"]) for x in selected]
-
-    except Exception as e:
-        print(f"❌ {url} 处理错误: {str(e)}")
-        if not cloudscraper:
-            print("⚠️ 如需绕过 hostmonit 403，请先安装: pip install cloudscraper")
-        return []
+    print(f"❌ {url} 处理错误: {str(last_error)}")
+    if not cloudscraper:
+        print("⚠️ 建议安装 cloudscraper 以提升成功率")
+    return []
 
 def send_telegram_combined_message(bot_token, chat_id, caption, file_path):
-    """将文本说明作为文件的caption一起发送"""
     if not all([bot_token, chat_id, file_path, os.path.exists(file_path)]):
         print("⚠️ 缺少必要参数或文件不存在，无法发送通知")
         return False
 
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendDocument"
-
         with open(file_path, 'rb') as f:
             files = {'document': (os.path.basename(file_path), f)}
             data = {
@@ -370,18 +374,14 @@ def send_telegram_combined_message(bot_token, chat_id, caption, file_path):
                 'caption': caption[:1024],
                 'parse_mode': 'Markdown'
             }
-
             response = requests.post(url, data=data, files=files, timeout=20)
             response.raise_for_status()
-
             result = response.json()
             if result.get('ok'):
-                print("✅ 文本和文件已合并发送成功")
+                print("✅ Telegram 通知发送成功")
                 return True
-            else:
-                print(f"❌ API返回错误: {result.get('description')}")
-                return False
-
+            print(f"❌ Telegram API错误: {result}")
+            return False
     except Exception as e:
         print(f"❌ 发送失败: {str(e)}")
         return False
@@ -431,32 +431,32 @@ def extract_fastest_ips():
 
     all_ips = []
 
-    # 原样
+    # 1. ip.164746.xyz 保持原样
     for item in speed_ips_dict.get(normal_speed_url, []):
         ip, speed = item
         all_ips.append(f"{ip}#{get_ip_country_code(ip)}-{speed}")
 
-    # wetest：只保留 IP#数据中心-线路
+    # 2. wetest 新增来源：只保留 IP#数据中心-线路
     for url in wetest_urls:
         for item in speed_ips_dict.get(url, []):
             ip, name = item
             all_ips.append(f"{ip}#{name}")
 
-    # vps789：保持原样
+    # 3. vps789 保持原样
     for item in speed_ips_dict.get("vps789", []):
         ip, speed, latency = item
         all_ips.append(f"{ip}#{latency}-{speed}")
 
-    # hostmonit：只保留 IP#数据中心-线路
+    # 4. hostmonit 新增来源：只保留 IP#数据中心-线路
     for url in hostmonit_urls:
         for item in speed_ips_dict.get(url, []):
             ip, name = item
             all_ips.append(f"{ip}#{name}")
 
-    # 文本源原样
+    # 5. ipdb.api.030101.xyz 保持原样
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
-    # 去重
+    # 去重保序
     seen = set()
     deduped_ips = []
     for line in all_ips:
@@ -470,27 +470,34 @@ def extract_fastest_ips():
         f.write('\n'.join(deduped_ips))
     print(f"✅ 已保存 {len(deduped_ips)} 个IP到 {file_path}")
 
-    # Telegram caption：URL和数量分开，避免整行被识别为链接
-    caption = "IP采集结果：\n\n"
+    # 精简通知
+    failed_sources = []
 
-    idx = 1
-    caption += f"{idx}. 来源：\n{normal_speed_url}\n数量：{len(speed_ips_dict.get(normal_speed_url, []))}个IP\n\n"
-    idx += 1
+    if len(speed_ips_dict.get(normal_speed_url, [])) == 0:
+        failed_sources.append("ip.164746.xyz")
 
     for url in wetest_urls:
-        caption += f"{idx}. 来源：\n{url}\n数量：{len(speed_ips_dict.get(url, []))}个IP\n\n"
-        idx += 1
+        if len(speed_ips_dict.get(url, [])) == 0:
+            failed_sources.append(url.split('/')[-1])
 
-    caption += f"{idx}. 来源：\nvps789（自动探测可用地址）\n数量：{len(speed_ips_dict.get('vps789', []))}个IP\n\n"
-    idx += 1
+    if len(speed_ips_dict.get("vps789", [])) == 0:
+        failed_sources.append("vps789")
 
     for url in hostmonit_urls:
-        caption += f"{idx}. 来源：\n{url}\n数量：{len(speed_ips_dict.get(url, []))}个IP\n\n"
-        idx += 1
+        if len(speed_ips_dict.get(url, [])) == 0:
+            failed_sources.append(url.split('/')[-1])
 
-    caption += f"{idx}. 来源：\n{text_url}\n数量：{len(text_ips)}个IP\n\n"
-    caption += f"总计：{len(deduped_ips)}个IP\n\n"
-    caption += "下载链接：\nhttps://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n\n"
+    if len(text_ips) == 0:
+        failed_sources.append("ipdb.api")
+
+    caption = "IP采集完成\n"
+    caption += f"总计：{len(deduped_ips)}个IP\n"
+
+    if failed_sources:
+        caption += f"异常：{'、'.join(failed_sources)}\n"
+
+    caption += "下载：\n"
+    caption += "https://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
     caption += f"⏰ {get_china_time()}"
 
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
