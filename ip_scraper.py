@@ -373,11 +373,11 @@ def extract_fastest_ips():
     caption += f"✅ 本次共采集 ：{raw_total}个\n"
     
     if duplicates:
-        caption += f"其中去重：{', '.join(duplicates[:8])}" + (" 等" if len(duplicates) > 8 else "") + "\n"
+        caption += f"🪄 其中去重：{', '.join(duplicates[:8])}" + (" 等" if len(duplicates) > 8 else "") + "\n"
     else:
-        caption += "其中去重：无\n"
+        caption += "🪄 其中去重：无\n"
     
-    caption += f"已上传（去重）：{len(deduped_ips)}个IP\n"
+    caption += f"✅ 已上传（去重）：{len(deduped_ips)}个IP\n"
     
     if failed_sources:
         caption += f"⚠️ 异常（0个）：{'、'.join(failed_sources)}\n"
