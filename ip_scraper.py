@@ -315,28 +315,32 @@ def extract_fastest_ips():
     # 5. ipdb.api → IP#CF
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
-    # 去重
+    # ==================== 去重 + 记录被去重的IP ====================
+    raw_total = len(all_ips)
     seen = set()
     deduped_ips = []
+    duplicates = []          # 被去重的IP（仅IP部分）
     for line in all_ips:
         entry = line.split('#')[0].strip()
         if entry not in seen:
             seen.add(entry)
             deduped_ips.append(line)
+        else:
+            duplicates.append(entry)
 
     file_path = '89.txt'
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(deduped_ips))
-    print(f"✅ 已保存 {len(deduped_ips)} 个条目到 {file_path}")
+    print(f"✅ 已保存 {len(deduped_ips)} 个条目到 {file_path}（原始 {raw_total} 个，去重 {len(duplicates)} 个）")
 
-    # ==================== 新 TG 来源详情（完全按你指定的格式） ====================
+    # ==================== TG 来源详情（已加emoji，跟原来风格一致） ====================
     source_stats = []
 
     # ip.164746
     ip164_count = len(speed_ips_dict.get(normal_speed_url, []))
     source_stats.append(f"ip.164746.xyz ({normal_speed_url}): {ip164_count}个")
 
-    # wetest（精确匹配你想要的短名称 + 空格）
+    # wetest
     for url in wetest_urls:
         count = len(speed_ips_dict.get(url, []))
         if 'cloudflare' in url.lower():
@@ -345,7 +349,7 @@ def extract_fastest_ips():
             short = f"cloudfront_{url.split('address_')[-1].replace('.html', '')}"
         source_stats.append(f"wetest {short}   {count}个")
 
-    # vps789（两个链接单独显示，完全按你要求）
+    # vps789（两个链接单独显示 + emoji）
     vps_data = speed_ips_dict.get("vps789", {"cfIpApi_count": 0, "cfIpTop20_count": 0, "cfIpApi_url": "", "cfIpTop20_url": ""})
     cf_api_count = vps_data.get("cfIpApi_count", 0)
     cf_top_count = vps_data.get("cfIpTop20_count", 0)
@@ -377,10 +381,18 @@ def extract_fastest_ips():
     if ipdb_count == 0:
         failed_sources.append("ipdb.api")
 
-    # ==================== TG 通知（精确按你指定的格式） ====================
+    # ==================== TG 通知（精确按你这次指定的格式） ====================
     caption = "IP-scraper运行完成\n\n"
     caption += "📊 采集情况：\n" + "\n".join([f"• {stat}" for stat in source_stats]) + "\n\n"
-    caption += f"✅ 本次共采集 (去重后)：{len(deduped_ips)}个\n"
+    caption += f"✅ 本次共采集 ：{raw_total}个\n"
+    
+    if duplicates:
+        caption += f"其中去重：{', '.join(duplicates[:10])}" + (" 等" if len(duplicates) > 10 else "") + "\n"
+    else:
+        caption += "其中去重：无\n"
+    
+    caption += f"已上传（去重）：{len(deduped_ips)}个IP\n"
+    
     if failed_sources:
         caption += f"⚠️ 异常（0个）：{'、'.join(failed_sources)}\n"
     caption += "\n文件地址：\nhttps://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
