@@ -17,16 +17,18 @@ def get_client(use_cloudscraper=False):
     return requests.Session()
 
 def get_ip_country_code(ip):
+    """改成 CF 兜底，不再出现 XX"""
     try:
         ip_obj = ipaddress.ip_address(ip)
         if ip_obj.version == 6:
             return "IPv6"
         url = f"https://ipinfo.io/{ip}/json"
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=8)
         response.raise_for_status()
-        return response.json().get("country", "XX")
+        country = response.json().get("country")
+        return country if country and country != "XX" else "CF"
     except:
-        return "XX"
+        return "CF"
 
 def parse_speed(speed_str):
     if not speed_str:
@@ -140,10 +142,10 @@ def fetch_wetest_ips(url):
         return []
 
 def fetch_vps789_ips():
-    """vps789 双官方API：cfIpApi（每个线路1个） + cfIpTop20（前3个优选域名/IP）"""
+    """vps789 双官方API（完全按你最新要求）"""
     all_vps = []
 
-    # 1. cfIpApi - 每个线路拿1个最好的（命名：IP#线路）
+    # 1. cfIpApi - 每个线路拿1个最好的 → IP#移动 / IP#联通 / IP#电信
     url_api = "https://vps789.com/openApi/cfIpApi"
     try:
         response = requests.get(url_api, timeout=15)
@@ -161,7 +163,7 @@ def fetch_vps789_ips():
     except Exception as e:
         print(f"❌ vps789 cfIpApi 失败: {e}")
 
-    # 2. cfIpTop20 - 额外丢前3个最好的（支持域名，命名：域名/IP#数据中心 或 #优选）
+    # 2. cfIpTop20 - 前3个最好的（支持域名）→ 域名/IP#优选
     url_top20 = "https://vps789.com/openApi/cfIpTop20"
     try:
         response = requests.get(url_top20, timeout=15)
@@ -175,10 +177,7 @@ def fetch_vps789_ips():
                 if not entry or entry in seen:
                     continue
                 seen.add(entry)
-                # 当前API返回的Top20没有location字段 → 用“优选”
-                city = item.get("locationCity") or item.get("locationCountry") or ""
-                name = city if city else "优选"
-                all_vps.append((entry, name))
+                all_vps.append((entry, "优选"))
     except Exception as e:
         print(f"❌ vps789 cfIpTop20 失败: {e}")
 
@@ -186,6 +185,7 @@ def fetch_vps789_ips():
     return all_vps
 
 def fetch_hostmonit_ips(url):
+    """已适配当前 markdown 表格格式"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,application/xhtml+xml,*/*',
@@ -198,13 +198,14 @@ def fetch_hostmonit_ips(url):
         text = response.text
         records = []
         for line in text.splitlines():
-            if '|' not in line or 'IP' in line.upper() or 'Line' in line:
+            line = line.strip()
+            if '|' not in line or '---' in line or 'Line' in line or 'IP' in line.upper():
                 continue
             parts = [p.strip() for p in line.split('|') if p.strip()]
-            if len(parts) < 5:
+            if len(parts) < 6:
                 continue
             carrier = parts[0]
-            ip = next((p for p in parts if re.match(r'(\d{1,3}\.){3}\d{1,3}', p)), None)
+            ip = next((p for p in parts if re.match(r'(\d{1,3}\.){3}\d{1,3}|:', p)), None)
             latency = next((p for p in parts if 'ms' in p.lower()), None)
             speed = next((p for p in parts if re.search(r'KB/s|MB/s', p, re.I)), None)
             colo = next((p for p in parts if re.fullmatch(r'[A-Z]{3}', p)), None)
@@ -221,7 +222,7 @@ def fetch_hostmonit_ips(url):
             print(f"✅ hostmonit 成功: {url}（{len(selected)}个）")
             return [(x["ip"], x["name"]) for x in selected]
         else:
-            print(f"⚠️ hostmonit 解析到0个（格式可能变化）")
+            print(f"⚠️ hostmonit 解析到0个（格式可能再次变化）")
             return []
     except Exception as e:
         print(f"❌ {url} 处理错误: {e}")
@@ -288,18 +289,24 @@ def extract_fastest_ips():
     text_ips = fetch_text_ips(text_url)
 
     all_ips = []
+    # 1. ip.164746.xyz → IP#CF-速度
     for ip, speed in speed_ips_dict.get(normal_speed_url, []):
         all_ips.append(f"{ip}#{get_ip_country_code(ip)}-{speed}")
+    # 2. wetest
     for url in wetest_urls:
         for ip, name in speed_ips_dict.get(url, []):
             all_ips.append(f"{ip}#{name}")
+    # 3. vps789（双API）
     for ip, name in speed_ips_dict.get("vps789", []):
-        all_ips.append(f"{ip}#{name}")          # ← 这里支持域名
+        all_ips.append(f"{ip}#{name}")
+    # 4. hostmonit
     for url in hostmonit_urls:
         for ip, name in speed_ips_dict.get(url, []):
             all_ips.append(f"{ip}#{name}")
+    # 5. ipdb.api
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
+    # 去重
     seen = set()
     deduped_ips = []
     for line in all_ips:
@@ -313,7 +320,7 @@ def extract_fastest_ips():
         f.write('\n'.join(deduped_ips))
     print(f"✅ 已保存 {len(deduped_ips)} 个条目到 {file_path}")
 
-    # 异常提示
+    # TG 异常提示（分网站）
     failed_sources = []
     if len(speed_ips_dict.get(normal_speed_url, [])) == 0:
         failed_sources.append("ip.164746.xyz")
