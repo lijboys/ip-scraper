@@ -2,20 +2,20 @@ name: IP 数据采集
 
 on:
   schedule:
-    - cron: '0 */8 * * *'  # 每4小时执行一次
-  workflow_dispatch:  # 允许手动触发
+    - cron: '0 */8 * * *'   # 每 8 小时执行一次
+  workflow_dispatch:        # 支持手动触发
 
 jobs:
   scrape-ip:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write  # 授予写入权限
-      
+      contents: write      # 必须要有写入权限
+    
     env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}  # Telegram Bot令牌
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}      # 聊天ID
-      
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -33,15 +33,15 @@ jobs:
       - name: 运行 IP 采集脚本
         run: python ip_scraper.py
       
-      - name: 提交并推送更改
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule
+      - name: 保存并推送更新
         run: |
-          if [[ $(git status --porcelain) ]]; then
+          if [[ -n $(git status --porcelain 89.txt) ]]; then
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git add 89.txt
-            git commit -m "更新 IP 数据"
+            git commit -m "📡 IP-scraper 自动更新 $(date '+%Y-%m-%d %H:%M:%S')"
             git push
+            echo "✅ 89.txt 已更新并推送"
           else
-            echo "无更改需要提交"
+            echo "✅ 无变化，无需提交"
           fi
