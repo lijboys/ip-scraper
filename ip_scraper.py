@@ -17,7 +17,6 @@ def get_client(use_cloudscraper=False):
     return requests.Session()
 
 def get_ip_country_code(ip):
-    """ip.164746 和 ipdb.api 专用：查不到就返回 CF"""
     try:
         ip_obj = ipaddress.ip_address(ip)
         if ip_obj.version == 6:
@@ -142,12 +141,10 @@ def fetch_wetest_ips(url):
         return []
 
 def fetch_vps789_ips():
-    """vps789 双官方API（分开统计计数，两个链接单独显示）"""
     cf_api_ips = []
     cf_top_ips = []
-
-    # 1. cfIpApi
     url_api = "https://vps789.com/openApi/cfIpApi"
+    url_top20 = "https://vps789.com/openApi/cfIpTop20"
     try:
         response = requests.get(url_api, timeout=15)
         response.raise_for_status()
@@ -164,8 +161,6 @@ def fetch_vps789_ips():
     except Exception as e:
         print(f"❌ vps789 cfIpApi 失败: {e}")
 
-    # 2. cfIpTop20
-    url_top20 = "https://vps789.com/openApi/cfIpTop20"
     try:
         response = requests.get(url_top20, timeout=15)
         response.raise_for_status()
@@ -183,7 +178,7 @@ def fetch_vps789_ips():
         print(f"❌ vps789 cfIpTop20 失败: {e}")
 
     all_vps = cf_api_ips + cf_top_ips
-    print(f"✅ vps789 双API成功（含域名）获取 {len(all_vps)} 个条目 (cfIpApi: {len(cf_api_ips)}, cfIpTop20: {len(cf_top_ips)})")
+    print(f"✅ vps789 双API成功获取 {len(all_vps)} 个条目")
     return {
         "all": all_vps,
         "cfIpApi_count": len(cf_api_ips),
@@ -193,7 +188,6 @@ def fetch_vps789_ips():
     }
 
 def fetch_hostmonit_ips(url):
-    """已适配当前 markdown 表格"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'text/html,application/xhtml+xml,*/*',
@@ -230,7 +224,7 @@ def fetch_hostmonit_ips(url):
             print(f"✅ hostmonit 成功: {url}（{len(selected)}个）")
             return [(x["ip"], x["name"]) for x in selected]
         else:
-            print(f"⚠️ hostmonit 解析到0个（格式可能再次变化）")
+            print(f"⚠️ hostmonit 解析到0个")
             return []
     except Exception as e:
         print(f"❌ {url} 处理错误: {e}")
@@ -297,29 +291,24 @@ def extract_fastest_ips():
     text_ips = fetch_text_ips(text_url)
 
     all_ips = []
-    # 1. ip.164746.xyz → IP#CF-速度
     for ip, speed in speed_ips_dict.get(normal_speed_url, []):
         all_ips.append(f"{ip}#{get_ip_country_code(ip)}-{speed}")
-    # 2. wetest
     for url in wetest_urls:
         for ip, name in speed_ips_dict.get(url, []):
             all_ips.append(f"{ip}#{name}")
-    # 3. vps789（双API）
     vps_data = speed_ips_dict.get("vps789", {"all": []})
     for ip, name in vps_data.get("all", []):
         all_ips.append(f"{ip}#{name}")
-    # 4. hostmonit
     for url in hostmonit_urls:
         for ip, name in speed_ips_dict.get(url, []):
             all_ips.append(f"{ip}#{name}")
-    # 5. ipdb.api → IP#CF
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
-    # ==================== 去重 + 记录被去重的IP ====================
+    # 去重 + 记录被去重的IP
     raw_total = len(all_ips)
     seen = set()
     deduped_ips = []
-    duplicates = []          # 被去重的IP（仅IP部分）
+    duplicates = []
     for line in all_ips:
         entry = line.split('#')[0].strip()
         if entry not in seen:
@@ -331,36 +320,33 @@ def extract_fastest_ips():
     file_path = '89.txt'
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(deduped_ips))
-    print(f"✅ 已保存 {len(deduped_ips)} 个条目到 {file_path}（原始 {raw_total} 个，去重 {len(duplicates)} 个）")
+    print(f"✅ 已保存 {len(deduped_ips)} 个条目（原始 {raw_total} 个，去重 {len(duplicates)} 个）")
 
-    # ==================== TG 来源详情（已加emoji，跟原来风格一致） ====================
+    # ==================== TG 来源详情（全部加上完整链接） ====================
     source_stats = []
 
     # ip.164746
     ip164_count = len(speed_ips_dict.get(normal_speed_url, []))
     source_stats.append(f"ip.164746.xyz ({normal_speed_url}): {ip164_count}个")
 
-    # wetest
+    # wetest（全部带完整链接）
     for url in wetest_urls:
         count = len(speed_ips_dict.get(url, []))
-        if 'cloudflare' in url.lower():
-            short = f"address_{url.split('address_')[-1].replace('.html', '')}"
-        else:
-            short = f"cloudfront_{url.split('address_')[-1].replace('.html', '')}"
-        source_stats.append(f"wetest {short}   {count}个")
+        short = url.split('/')[-1].replace('.html', '')
+        source_stats.append(f"wetest {short} ({url}): {count}个")
 
-    # vps789（两个链接单独显示 + emoji）
+    # vps789（两个链接）
     vps_data = speed_ips_dict.get("vps789", {"cfIpApi_count": 0, "cfIpTop20_count": 0, "cfIpApi_url": "", "cfIpTop20_url": ""})
     cf_api_count = vps_data.get("cfIpApi_count", 0)
     cf_top_count = vps_data.get("cfIpTop20_count", 0)
     source_stats.append(f"vps789 cfIpApi ({vps_data.get('cfIpApi_url')}): {cf_api_count}个")
     source_stats.append(f"vps789 cfIpTop20 ({vps_data.get('cfIpTop20_url')}): {cf_top_count}个")
 
-    # hostmonit
+    # hostmonit（全部带完整链接）
     for url in hostmonit_urls:
         count = len(speed_ips_dict.get(url, []))
         short = url.split('/')[-1]
-        source_stats.append(f"hostmonit {short}   {count}个")
+        source_stats.append(f"hostmonit {short} ({url}): {count}个")
 
     # ipdb.api
     ipdb_count = len(text_ips)
@@ -381,13 +367,13 @@ def extract_fastest_ips():
     if ipdb_count == 0:
         failed_sources.append("ipdb.api")
 
-    # ==================== TG 通知（精确按你这次指定的格式） ====================
+    # ==================== TG 通知（保持你想要的格式） ====================
     caption = "IP-scraper运行完成\n\n"
     caption += "📊 采集情况：\n" + "\n".join([f"• {stat}" for stat in source_stats]) + "\n\n"
     caption += f"✅ 本次共采集 ：{raw_total}个\n"
     
     if duplicates:
-        caption += f"其中去重：{', '.join(duplicates[:10])}" + (" 等" if len(duplicates) > 10 else "") + "\n"
+        caption += f"其中去重：{', '.join(duplicates[:8])}" + (" 等" if len(duplicates) > 8 else "") + "\n"
     else:
         caption += "其中去重：无\n"
     
