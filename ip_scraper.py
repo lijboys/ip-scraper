@@ -286,7 +286,7 @@ def extract_fastest_ips():
                 print(f"❌ {url} 抓取失败: {e}")
                 speed_ips_dict[url] = []
 
-    text_ips = fetch_text_ips(text_url)
+        text_ips = fetch_text_ips(text_url)
 
     all_ips = []
     # 1. ip.164746.xyz → IP#CF-速度
@@ -303,7 +303,7 @@ def extract_fastest_ips():
     for url in hostmonit_urls:
         for ip, name in speed_ips_dict.get(url, []):
             all_ips.append(f"{ip}#{name}")
-    # 5. ipdb.api
+    # 5. ipdb.api → IP#CF
     all_ips += [f"{ip}#{get_ip_country_code(ip)}" for ip in text_ips]
 
     # 去重
@@ -320,33 +320,52 @@ def extract_fastest_ips():
         f.write('\n'.join(deduped_ips))
     print(f"✅ 已保存 {len(deduped_ips)} 个条目到 {file_path}")
 
-    # TG 异常提示（分网站）
+    # ==================== 新增：TG 来源详情统计 ====================
+    source_stats = []
+    # ip.164746
+    ip164_count = len(speed_ips_dict.get(normal_speed_url, []))
+    source_stats.append(f"ip.164746.xyz ({normal_speed_url}): {ip164_count}个")
+    # wetest
+    for url in wetest_urls:
+        count = len(speed_ips_dict.get(url, []))
+        short = url.split('/')[-1].replace('address_', '').replace('.html', '').replace('cloudfront_', 'cloudfront_')
+        source_stats.append(f"wetest {short}: {count}个")
+    # vps789
+    vps_count = len(speed_ips_dict.get("vps789", []))
+    source_stats.append(f"vps789 (双API): {vps_count}个")
+    # hostmonit
+    for url in hostmonit_urls:
+        count = len(speed_ips_dict.get(url, []))
+        short = url.split('/')[-1]
+        source_stats.append(f"hostmonit {short}: {count}个")
+    # ipdb
+    ipdb_count = len(text_ips)
+    source_stats.append(f"ipdb.api ({text_url}): {ipdb_count}个")
+
+    # 异常列表（保持原有逻辑）
     failed_sources = []
-    if len(speed_ips_dict.get(normal_speed_url, [])) == 0:
+    if ip164_count == 0:
         failed_sources.append("ip.164746.xyz")
     for url in wetest_urls:
         if len(speed_ips_dict.get(url, [])) == 0:
             failed_sources.append(url.split('/')[-1])
-    if len(speed_ips_dict.get("vps789", [])) == 0:
+    if vps_count == 0:
         failed_sources.append("vps789")
     for url in hostmonit_urls:
         if len(speed_ips_dict.get(url, [])) == 0:
             failed_sources.append(url.split('/')[-1])
-    if len(text_ips) == 0:
+    if ipdb_count == 0:
         failed_sources.append("ipdb.api")
 
-    caption = "IP采集完成\n"
-    caption += f"总计：{len(deduped_ips)}个\n"
+    # ==================== 新 TG 通知内容 ====================
+    caption = "IP采集完成\n\n"
+    caption += "📊 来源详情：\n" + "\n".join([f"• {stat}" for stat in source_stats]) + "\n\n"
+    caption += f"✅ 总计去重后：{len(deduped_ips)}个\n"
     if failed_sources:
-        caption += f"异常：{'、'.join(failed_sources)}\n"
-    caption += "下载：\nhttps://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
+        caption += f"⚠️ 异常（0个）：{'、'.join(failed_sources)}\n"
+    caption += "\n下载预览：\nhttps://raw.githubusercontent.com/lijboys/ip-scraper/refs/heads/main/89.txt\n"
     caption += f"⏰ {get_china_time()}"
 
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     send_telegram_combined_message(bot_token, chat_id, caption, file_path)
-
-if __name__ == "__main__":
-    print("===== 开始执行IP采集任务 =====")
-    extract_fastest_ips()
-    print("===== 任务执行完毕 =====")
