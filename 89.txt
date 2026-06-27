@@ -1,34 +1,56 @@
-162.159.44.188#US-78.38MB/s
-108.162.198.210#US-78.21MB/s
-162.159.38.57#US-76.64MB/s
-172.64.53.89#US-75.70MB/s
-162.159.45.121#US-75.67MB/s
-104.17.210.243#HKG-移动
-104.21.226.141#LAX-联通
-162.159.34.142#SIN-电信
-2606:4700:57::4600:c25e#HKG-移动
-2606:4700:4c::f281:71db#LAX-联通
-2606:4700:4406::49e0:e52#SIN-电信
-13.35.222.63#UNK-移动
-52.84.150.206#UNK-联通
-18.65.166.122#UNK-电信
-2600:9000:20af::4c7f:fdd2#UNK-移动
-2600:9000:2828::f7ad:f25a#UNK-联通
-2600:9000:213e::fc52:a016#UNK-电信
-104.18.39.150#电信
-104.19.60.61#联通
-104.19.44.71#移动
-104.18.46.111#AllAvg
+172.64.53.98#US-55.08MB/s
+162.159.39.3#US-24.45MB/s
+108.162.198.9#US-14.18MB/s
+172.64.52.41#US-0.35MB/s
+162.159.45.208#US-0.26MB/s
+104.25.255.182#HKG-移动
+198.41.219.249#SJC-联通
+162.159.41.15#SIN-电信
+2606:4700:9ae9::92d1:4e64#HKG-移动
+2606:4700:a9::e5e7:9812#SJC-联通
+2606:4700:54::5d4:b1eb#SIN-电信
+3.171.195.178#UNK-移动
+18.65.208.33#UNK-联通
+13.33.208.217#UNK-电信
+2600:9000:2079::3c6d:108c#UNK-移动
+2600:9000:2025::df0f:3c5c#UNK-联通
+2600:9000:234c::d7d3:402#UNK-电信
+172.64.157.2#电信
+104.17.151.81#联通
+104.18.44.151#移动
+172.64.156.112#AllAvg
 aistudio.zabc.net#优选
 b.lma.de5.net#优选
 yg2.ygkkk.dpdns.org#优选
-104.17.174.174#US
-104.17.149.180#US
-172.64.154.213#US
-104.16.144.191#US
-104.16.245.24#US
-172.64.158.173#US
-104.16.242.211#US
-104.19.48.99#US
-104.19.49.217#US
-172.64.157.23#US
+<link rel="icon" type="image/png" href="https://img.icons8.com/pulsar-color/48/ip-address.png">#CF
+border: 0;#CF
+height: 1px;#CF
+background: linear-gradient(to right, transparent, #ccc, transparent);#CF
+margin: 20px 0;#CF
+user-select: none;#CF
+cursor: pointer;#CF
+font-family: Arial, sans-serif;#CF
+background-color: #F5F5F5;#CF
+padding: 0 3%;#CF
+color: #838eb4;#CF
+text-decoration: none;#CF
+padding: 2px 5px;#CF
+border-radius: 3px;#CF
+margin-bottom: 15px;#CF
+margin-bottom: 5px;#CF
+@media (prefers-color-scheme: dark) {#CF
+hm.src = "https://hm.baidu.com/hm.js?7dd7ed0a5e25f4e945738da3329b1c6c";#CF
+<h1 style="font-size: 30px;">IPDB API of <span style="text-decoration: underline; cursor: pointer;"#CF
+onclick="window.open('https://github.com/ymyuuu', '_blank')">Mingyu</span></h1>#CF
+<h2>Disclaimer:</h2>#CF
+<h2>Help Documents:</h2>#CF
+<p>寻找独一无二的<strong>优选域名</strong>？追求一劳永逸的选择？<a href="https://t.me/HeroCore" target="_blank">@HubCore</a></p>#CF
+<h3>Demo:</h3>#CF
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&country=true"#CF
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;proxy"#CF
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&down=true"#CF
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;cfv6&down=true"#CF
+<p style="text-align: center;">#CF
+<a href="https://github.com/ymyuuu" target="_blank">GitHub</a> |#CF
+<a href="https://t.me/HeroCore" target="_blank">Telegram</a> |#CF
+<a href="https://api.030101.xyz">API</a>#CF
