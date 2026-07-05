@@ -1,34 +1,54 @@
-162.159.38.124#US-78.43MB/s
-108.162.198.147#US-78.34MB/s
-162.159.45.142#US-78.25MB/s
-162.159.44.111#US-78.24MB/s
-172.64.53.74#US-77.26MB/s
-104.17.22.30#HKG-移动
-104.17.155.83#SJC-联通
-172.64.49.5#SIN-电信
-2606:4700:91ba::e6e1:eeab#HKG-移动
-2a06:98c1:4c::1f57:d2b0#LAX-联通
-2803:f800:50::66a0:f127#SIN-电信
-3.175.203.71#UNK-移动
-13.33.100.87#UNK-联通
-3.168.253.66#UNK-电信
-2600:9000:2079::d7a:2117#UNK-移动
-2600:9000:208e::60a7:5cde#UNK-联通
-2600:9000:24bb::5bef:9993#UNK-电信
-104.18.45.68#电信
-172.67.149.32#联通
-172.64.156.99#移动
-104.18.46.37#AllAvg
+162.159.39.118#US-78.52MB/s
+162.159.38.145#US-77.97MB/s
+108.162.198.19#US-77.06MB/s
+162.159.44.148#US-76.75MB/s
+172.64.53.245#US-71.93MB/s
+104.17.213.222#HKG-移动
+104.17.152.208#SJC-联通
+162.159.43.43#SIN-电信
+2606:4700:99e6::56b7:a824#HKG-移动
+2a06:98c1:310e::4059:64ba#SIN-电信
+3.175.206.127#UNK-移动
+3.164.141.207#UNK-联通
+3.166.218.151#UNK-电信
+2600:9000:2014::29b4:4984#UNK-移动
+2600:9000:223b::5ae9:c0d9#UNK-电信
+108.162.198.127#电信
+198.41.209.68#联通
+172.64.145.202#移动
+104.18.39.78#AllAvg
 blog.646474.xyz#优选
 1757760858.tencentapp.cn#优选
 kuaidianlian.com.cn#优选
-104.16.149.122#US
-104.17.27.231#US
-104.17.30.62#US
-104.17.50.133#US
-104.16.146.89#US
-104.16.155.99#US
-104.17.122.111#US
-104.16.144.14#US
-104.17.119.164#US
-104.25.255.18#US
+<link rel="icon" type="image/png" href="https://img.icons8.com/pulsar-color/48/ip-address.png">#CF
+border: 0;#CF
+height: 1px;#CF
+background: linear-gradient(to right, transparent, #ccc, transparent);#CF
+margin: 20px 0;#CF
+user-select: none;#CF
+cursor: pointer;#CF
+font-family: Arial, sans-serif;#CF
+background-color: #F5F5F5;#CF
+padding: 0 3%;#CF
+color: #838eb4;#CF
+text-decoration: none;#CF
+padding: 2px 5px;#CF
+border-radius: 3px;#CF
+margin-bottom: 15px;#CF
+margin-bottom: 5px;#CF
+@media (prefers-color-scheme: dark) {#CF
+hm.src = "https://hm.baidu.com/hm.js?7dd7ed0a5e25f4e945738da3329b1c6c";#CF
+<h1 style="font-size: 30px;">IPDB API of <span style="text-decoration: underline; cursor: pointer;"#CF
+onclick="window.open('https://github.com/ymyuuu', '_blank')">Mingyu</span></h1>#CF
+<h2>Disclaimer:</h2>#CF
+<h2>Help Documents:</h2>#CF
+<p>寻找独一无二的<strong>优选域名</strong>？追求一劳永逸的选择？<a href="https://t.me/HeroCore" target="_blank">@HubCore</a></p>#CF
+<h3>Demo:</h3>#CF
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&country=true"#CF
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;proxy"#CF
+<li><code><a href="https://{dynamicDomain}/?type=bestproxy&down=true"#CF
+<li><code><a href="https://{dynamicDomain}/?type=cfv4;cfv6&down=true"#CF
+<p style="text-align: center;">#CF
+<a href="https://github.com/ymyuuu" target="_blank">GitHub</a> |#CF
+<a href="https://t.me/HeroCore" target="_blank">Telegram</a> |#CF
+<a href="https://api.030101.xyz">API</a>#CF
