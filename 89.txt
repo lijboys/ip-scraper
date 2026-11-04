@@ -1,54 +1,31 @@
-104.18.32.67#US-60.54MB/s
-172.64.155.242#US-59.49MB/s
-172.64.229.40#US-38.46MB/s
-104.19.42.189#HKG-移动
-104.19.245.3#LAX-联通
-104.19.29.79#LAX-电信
-2606:4700:9640::4a13:2243#HKG-移动
-2606:4700:29::41e5:c988#LAX-联通
-2606:4700:440a::7bcf:860a#SIN-电信
-18.65.29.185#UNK-移动
-13.33.212.221#UNK-联通
-99.84.136.99#UNK-电信
-2600:9000:2939::162f:9a04#UNK-移动
-2600:9000:21ee::e723:b073#UNK-联通
-2600:9000:271a::bb85:98e0#UNK-电信
-104.18.40.77#电信
-172.64.145.42#联通
-104.18.46.111#移动
-172.64.159.151#AllAvg
+172.64.158.72#US-0.14MB/s
+172.64.151.186#US-0.11MB/s
+104.19.155.34#HKG-移动
+104.17.148.48#SJC-联通
+172.64.153.104#SIN-电信
+2606:4700:9b02::9da:b49#HKG-移动
+2606:4700:3113::39ec:66b5#LAX-联通
+2606:4700:4403::712a:5a46#SIN-电信
+54.239.190.114#UNK-移动
+13.33.9.133#UNK-联通
+3.164.105.213#UNK-电信
+2600:9000:2855::d0f:e6b6#UNK-移动
+2600:9000:2142::e1f:fe97#UNK-联通
+2600:9000:229f::7301:696b#UNK-电信
+104.18.45.223#电信
+162.159.143.154#联通
+104.18.39.78#移动
+172.64.156.156#AllAvg
 cf.blogluo.eu.org#优选
 video.ouo.chat#优选
 cf.xreak.top#优选
-<link rel="icon" type="image/png" href="https://img.icons8.com/pulsar-color/48/ip-address.png">#CF
-border: 0;#CF
-height: 1px;#CF
-background: linear-gradient(to right, transparent, #ccc, transparent);#CF
-margin: 20px 0;#CF
-user-select: none;#CF
-cursor: pointer;#CF
-font-family: Arial, sans-serif;#CF
-background-color: #F5F5F5;#CF
-padding: 0 3%;#CF
-color: #838eb4;#CF
-text-decoration: none;#CF
-padding: 2px 5px;#CF
-border-radius: 3px;#CF
-margin-bottom: 15px;#CF
-margin-bottom: 5px;#CF
-@media (prefers-color-scheme: dark) {#CF
-hm.src = "https://hm.baidu.com/hm.js?7dd7ed0a5e25f4e945738da3329b1c6c";#CF
-<h1 style="font-size: 30px;">IPDB API of <span style="text-decoration: underline; cursor: pointer;"#CF
-onclick="window.open('https://github.com/ymyuuu', '_blank')">Mingyu</span></h1>#CF
-<h2>Disclaimer:</h2>#CF
-<h2>Help Documents:</h2>#CF
-<p>寻找独一无二的<strong>优选域名</strong>？追求一劳永逸的选择？<a href="https://t.me/HeroCore" target="_blank">@HubCore</a></p>#CF
-<h3>Demo:</h3>#CF
-<li><code><a href="https://{dynamicDomain}/?type=bestproxy&country=true"#CF
-<li><code><a href="https://{dynamicDomain}/?type=cfv4;proxy"#CF
-<li><code><a href="https://{dynamicDomain}/?type=bestproxy&down=true"#CF
-<li><code><a href="https://{dynamicDomain}/?type=cfv4;cfv6&down=true"#CF
-<p style="text-align: center;">#CF
-<a href="https://github.com/ymyuuu" target="_blank">GitHub</a> |#CF
-<a href="https://t.me/HeroCore" target="_blank">Telegram</a> |#CF
-<a href="https://api.030101.xyz">API</a>#CF
+104.17.115.58#US
+172.64.156.51#US
+104.17.123.120#US
+104.16.152.240#US
+104.16.144.64#US
+172.67.165.109#US
+172.67.70.182#US
+104.17.53.214#US
+104.19.38.67#US
+104.21.92.165#US
